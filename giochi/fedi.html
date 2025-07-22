@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>💍 Raccogli le fedi</title>
+<title>💍 Raccogli le fedi - versione canvas pura</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
   body, html {
     margin: 0; padding: 0; overflow: hidden;
     background: linear-gradient(180deg, #cce7ff, #fdf7f0);
@@ -29,7 +28,6 @@
     font-weight: 700;
     color: #b99868;
     text-shadow: 0 0 5px #fff;
-    font-family: 'Great Vibes', cursive;
     user-select: none;
   }
   #message {
@@ -47,7 +45,7 @@
 
 <div id="scoreDisplay">Fedi raccolte: 0</div>
 <canvas id="gameCanvas"></canvas>
-<div id="message">Caricamento immagini…</div>
+<div id="message">Aiuta lo sposo o la sposa a raccogliere tutte le fedi!</div>
 
 <script>
 (() => {
@@ -65,64 +63,95 @@
   resize();
   window.addEventListener('resize', resize);
 
-  // Immagini base64
-  const sposoImgSrc = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAAAAYLlVAAAArklEQVR4Ae3WMQ6CMBQE0Afv9N9g+LDoZXZLYca7A4IxQm+wEsfIN7N9+9bLYWJH4iG7DZxFp+f1gLgN6E7/gs0Ql8CrB5cCzgk8BVAznvgBhQbG+x1kDq6ECQ+4D9IP+AQiMc4Db3g6wrEWCU2DLAaPwEX6wc6Esh5TsFy4DB1sIyThhPAXaT8IU5uX9QRh+JjffyG0NMLFwAAAABJRU5ErkJggg==';
-  const sposaImgSrc = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAAAAYLlVAAAAmklEQVR4Ae3WsQ2DMAxE0cH0E3Yr4DY+0PJwYZdOxGOI48gk6UvI8U7/u+Yk5OBIp5oV3sAxWuDV6OHXn7mSh7hlLXeB7YDCMEr7p4KXzW8VX3BQYENsG1sADHL/c3HGfjTpOBaNawFoh60Xs4M9KBV1zBTqs9SqE0dkCrK9DHINqnwNX+j5DRRWG4yY4Kmc9LRWdoLDBXs1wD3+a51bgqR4sKPEAAAAASUVORK5CYII=';
-  const ringImgSrc = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAv0lEQVR42mNgGAWjYBSMglEwCqP9n8E4n9E8Hmfi4v/q6XAfYH1MxNCJgPCo6H+48D4nBF5r4B+o5LEL8g8QfE9TJH7g/efxN8Ff2VgyQIlIgoD//79u9Jc5P+H7KbgwUIzAsD/QAZWzkAQQ3GgFoJoAyNcQkA3BxHiWA7qkM8v+x+ws0Gr6v2wNu/55MSxkJ/ALMr7TiBHBYkAAAAASUVORK5CYII=';
+  // Player e fedine disegnati a mano con canvas
 
-  const sposoImg = new Image();
-  const sposaImg = new Image();
-  const ringImg = new Image();
+  // Player: sposo o sposa casuale
+  let player = null;
+  const playerWidth = 60;
+  const playerHeight = 80;
 
-  let imagesLoaded = 0;
-  const totalImages = 3;
+  function drawSposo(x, y) {
+    ctx.fillStyle = '#2b3e50'; // abito blu scuro
+    ctx.fillRect(x + 20, y + 40, 20, 35); // corpo
+    ctx.beginPath(); // testa
+    ctx.fillStyle = '#f9d5b3';
+    ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + 22, y + 43, 5, 5); // cravatta
+    ctx.fillRect(x + 33, y + 43, 5, 5);
+  }
 
-  function checkAllLoaded() {
-    imagesLoaded++;
-    if (imagesLoaded === totalImages) {
-      message.textContent = "Aiuta lo sposo o la sposa a raccogliere tutte le fedi!";
-      startGame();
+  function drawSposa(x, y) {
+    ctx.fillStyle = '#f5f0e6'; // vestito bianco
+    ctx.beginPath();
+    ctx.moveTo(x + 10, y + 70);
+    ctx.lineTo(x + 30, y + 40);
+    ctx.lineTo(x + 50, y + 70);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath(); // testa
+    ctx.fillStyle = '#f9d5b3';
+    ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function newPlayer() {
+    if(Math.random() < 0.5) {
+      player = { type: 'sposo', x: canvas.width / 2 - playerWidth / 2, y: canvas.height - playerHeight - 20, width: playerWidth, height: playerHeight };
+    } else {
+      player = { type: 'sposa', x: canvas.width / 2 - playerWidth / 2, y: canvas.height - playerHeight - 20, width: playerWidth, height: playerHeight };
+    }
+    player.speed = 8;
+    player.targetX = null;
+  }
+
+  // Fedina: cerchio dorato
+  class Ring {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.radius = 15;
+      this.speed = 2 + Math.random();
+    }
+    update() {
+      this.y += this.speed;
+    }
+    draw() {
+      // cerchio esterno oro
+      ctx.beginPath();
+      ctx.strokeStyle = '#b99868';
+      ctx.lineWidth = 5;
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      // cerchio interno bianco
+      ctx.beginPath();
+      ctx.strokeStyle = '#fffef8';
+      ctx.lineWidth = 4;
+      ctx.arc(this.x, this.y, this.radius - 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    getRect() {
+      return { x: this.x - this.radius, y: this.y - this.radius, width: this.radius*2, height: this.radius*2 };
     }
   }
 
-  sposoImg.onload = checkAllLoaded;
-  sposaImg.onload = checkAllLoaded;
-  ringImg.onload = checkAllLoaded;
-
-  sposoImg.src = sposoImgSrc;
-  sposaImg.src = sposaImgSrc;
-  ringImg.src = ringImgSrc;
-
-  // Variabili gioco
-  let player = null;
   let rings = [];
   let spawnTimer = 0;
   const spawnInterval = 1000;
   let lastTime = 0;
   let score = 0;
 
-  function newPlayer() {
-    const characters = [
-      { img: sposoImg, width: 60, height: 80 },
-      { img: sposaImg, width: 60, height: 80 }
-    ];
-    player = { ...characters[Math.floor(Math.random() * characters.length)] };
-    player.x = canvas.width / 2 - player.width / 2;
-    player.y = canvas.height - player.height - 20;
-    player.speed = 8;
-    player.targetX = null;
-  }
-
   function spawnRing() {
-    const x = ringImg.width/2 + Math.random() * (canvas.width - ringImg.width);
-    rings.push({ x, y: -ringImg.height, width: ringImg.width, height: ringImg.height, speed: 2 + Math.random() });
+    const x = 20 + Math.random() * (canvas.width - 40);
+    rings.push(new Ring(x, -30));
   }
 
-  function collision(ring) {
-    return !(ring.x + ring.width < player.x ||
-             ring.x > player.x + player.width ||
-             ring.y + ring.height < player.y ||
-             ring.y > player.y + player.height);
+  function rectsOverlap(r1, r2) {
+    return !(r1.x + r1.width < r2.x ||
+             r1.x > r2.x + r2.width ||
+             r1.y + r1.height < r2.y ||
+             r1.y > r2.y + r2.height);
   }
 
   function update(delta) {
@@ -148,12 +177,16 @@
     }
 
     for (let i = rings.length - 1; i >= 0; i--) {
-      rings[i].y += rings[i].speed;
-      if (rings[i].y - rings[i].height > canvas.height) {
+      rings[i].update();
+      if (rings[i].y - rings[i].radius > canvas.height) {
         rings.splice(i, 1);
         continue;
       }
-      if (collision(rings[i])) {
+
+      // collisione player
+      const ringRect = rings[i].getRect();
+      const playerRect = { x: player.x, y: player.y, width: player.width, height: player.height };
+      if (rectsOverlap(ringRect, playerRect)) {
         rings.splice(i, 1);
         score++;
         scoreDisplay.textContent = `Fedi raccolte: ${score}`;
@@ -168,18 +201,19 @@
     if (!player) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Sfondo gradiente
+    // sfondo gradiente
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     grad.addColorStop(0, '#cce7ff');
     grad.addColorStop(1, '#fdf7f0');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Disegna fedi
-    rings.forEach(r => ctx.drawImage(ringImg, r.x - r.width / 2, r.y - r.height / 2, r.width, r.height));
+    // disegna fedine
+    rings.forEach(ring => ring.draw());
 
-    // Disegna player
-    ctx.drawImage(player.img, player.x, player.y, player.width, player.height);
+    // disegna player
+    if(player.type === 'sposo') drawSposo(player.x, player.y);
+    else drawSposa(player.x, player.y);
   }
 
   function gameLoop(timestamp = 0) {
@@ -208,10 +242,13 @@
   function startGame() {
     score = 0;
     scoreDisplay.textContent = `Fedi raccolte: ${score}`;
-    rings.length = 0;
+    rings = [];
     newPlayer();
     gameLoop();
   }
+
+  startGame();
+
 })();
 </script>
 
