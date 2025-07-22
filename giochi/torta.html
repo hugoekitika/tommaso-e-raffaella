@@ -7,35 +7,34 @@
 <style>
   body, html {
     margin: 0; padding: 0; overflow: hidden;
-    background: linear-gradient(180deg, #ffe6cc, #fff9f2);
+    background: linear-gradient(180deg, #fff8f0, #f0e6d2);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
   }
   #gameCanvas {
     display: block;
     margin: auto;
-    background: #fff9f2;
-    border: 4px solid #dcae6a;
-    border-radius: 14px;
+    background: #fffef8;
+    border: 3px solid #b99868;
+    border-radius: 12px;
     touch-action: none;
-    box-shadow: 0 0 12px rgba(220, 174, 106, 0.7);
   }
   #scoreDisplay {
     position: fixed;
     top: 10px; left: 50%;
     transform: translateX(-50%);
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    color: #dcae6a;
-    text-shadow: 0 0 5px #fff;
+    color: #b99868;
+    text-shadow: 0 0 4px #fff;
     user-select: none;
   }
   #message {
     position: fixed;
     bottom: 20px; left: 50%;
     transform: translateX(-50%);
-    font-size: 1.2rem;
-    color: #9d6b1f;
+    font-size: 1.1rem;
+    color: #8a6d36;
     font-weight: 600;
     user-select: none;
   }
@@ -43,9 +42,9 @@
 </head>
 <body>
 
-<div id="scoreDisplay">Torte prese: 0</div>
+<div id="scoreDisplay">Distanza percorsa: 0 m</div>
 <canvas id="gameCanvas"></canvas>
-<div id="message">Aiuta lo sposo o la sposa a prendere la torta!</div>
+<div id="message">Tocca lo schermo o clicca per saltare gli ostacoli!</div>
 
 <script>
 (() => {
@@ -63,157 +62,110 @@
   resize();
   window.addEventListener('resize', resize);
 
-  // Player disegno come prima (sposo e sposa)
-  let player = null;
-  const playerWidth = 60;
-  const playerHeight = 80;
+  const gravity = 0.8;
+  const player = {
+    x: 50,
+    y: 0,
+    width: 50,
+    height: 70,
+    vy: 0,
+    jumping: false,
+    color: '#b99868',
+  };
 
-  function drawSposo(x, y) {
-    ctx.fillStyle = '#2b3e50'; // abito blu scuro
-    ctx.fillRect(x + 20, y + 40, 20, 35);
-    ctx.beginPath();
-    ctx.fillStyle = '#f9d5b3';
-    ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.fillRect(x + 22, y + 43, 5, 5);
-    ctx.fillRect(x + 33, y + 43, 5, 5);
-  }
-
-  function drawSposa(x, y) {
-    ctx.fillStyle = '#f5f0e6'; // vestito bianco
-    ctx.beginPath();
-    ctx.moveTo(x + 10, y + 70);
-    ctx.lineTo(x + 30, y + 40);
-    ctx.lineTo(x + 50, y + 70);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.fillStyle = '#f9d5b3';
-    ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Torta (cerchio con decorazioni)
-  class Cake {
-    constructor(x, y) {
-      this.x = x;
-      this.y = y;
-      this.width = 40;
-      this.height = 40;
-      this.speed = 3 + Math.random() * 1.5;
-    }
-    update() {
-      this.y += this.speed;
-    }
-    draw() {
-      // base torta rosa chiaro
-      ctx.fillStyle = '#f4c1c1';
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-      // decorazioni: cerchi bianchi
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(this.x + 10, this.y + 10, 5, 0, Math.PI * 2);
-      ctx.arc(this.x + 30, this.y + 10, 5, 0, Math.PI * 2);
-      ctx.arc(this.x + 20, this.y + 30, 7, 0, Math.PI * 2);
-      ctx.fill();
-      // bordo torta
-      ctx.strokeStyle = '#d99090';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(this.x, this.y, this.width, this.height);
-    }
-    getRect() {
-      return { x: this.x, y: this.y, width: this.width, height: this.height };
-    }
-  }
-
-  function newPlayer() {
-    if(Math.random() < 0.5) {
-      player = { type: 'sposo', x: canvas.width / 2 - playerWidth / 2, y: canvas.height - playerHeight - 20, width: playerWidth, height: playerHeight };
-    } else {
-      player = { type: 'sposa', x: canvas.width / 2 - playerWidth / 2, y: canvas.height - playerHeight - 20, width: playerWidth, height: playerHeight };
-    }
-    player.speed = 9;
-    player.targetX = null;
-  }
-
-  let cakes = [];
-  let spawnTimer = 0;
-  const spawnInterval = 900;
+  let obstacles = [];
+  let obstacleTimer = 0;
+  const obstacleInterval = 1500;
+  let distance = 0;
   let lastTime = 0;
-  let score = 0;
+  let speed = 4;
 
-  function spawnCake() {
-    const x = 20 + Math.random() * (canvas.width - 60);
-    cakes.push(new Cake(x, -50));
+  function spawnObstacle() {
+    const size = 30 + Math.random() * 20;
+    obstacles.push({
+      x: canvas.width,
+      y: canvas.height - size - 20,
+      width: size,
+      height: size,
+      color: '#8a6d36',
+    });
   }
 
-  function rectsOverlap(r1, r2) {
-    return !(r1.x + r1.width < r2.x ||
-             r1.x > r2.x + r2.width ||
-             r1.y + r1.height < r2.y ||
-             r1.y > r2.y + r2.height);
+  function rectCollision(r1, r2) {
+    return !(r2.x > r1.x + r1.width || 
+             r2.x + r2.width < r1.x || 
+             r2.y > r1.y + r1.height ||
+             r2.y + r2.height < r1.y);
   }
 
   function update(delta) {
-    if (!player) return;
+    // Player gravity
+    player.vy += gravity;
+    player.y += player.vy;
 
-    if (player.targetX !== null) {
-      const dx = player.targetX - player.x;
-      if (Math.abs(dx) < player.speed) {
-        player.x = player.targetX;
-        player.targetX = null;
-      } else {
-        player.x += (dx > 0 ? player.speed : -player.speed);
+    if (player.y + player.height > canvas.height - 20) {
+      player.y = canvas.height - 20 - player.height;
+      player.vy = 0;
+      player.jumping = false;
+    }
+
+    // Obstacles movement
+    obstacleTimer += delta;
+    if (obstacleTimer > obstacleInterval) {
+      obstacleTimer = 0;
+      spawnObstacle();
+    }
+    obstacles.forEach(obs => obs.x -= speed);
+
+    // Remove offscreen obstacles
+    obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+    // Collision check
+    for (const obs of obstacles) {
+      if (rectCollision(player, obs)) {
+        // Game over: reset distance and obstacles
+        distance = 0;
+        obstacles = [];
+        message.textContent = "Oh no! Sei inciampato! Riprova :)";
+        break;
       }
     }
 
-    if (player.x < 0) player.x = 0;
-    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+    // Update distance
+    distance += speed * (delta / 16);
+    scoreDisplay.textContent = `Distanza percorsa: ${Math.floor(distance)} m`;
+  }
 
-    spawnTimer += delta;
-    if (spawnTimer > spawnInterval) {
-      spawnTimer = 0;
-      spawnCake();
-    }
+  function drawPlayer() {
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // Torta semplice sopra player (triangolo rosa)
+    ctx.fillStyle = '#f5a1a1';
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.width / 2 - 15, player.y - 20);
+    ctx.lineTo(player.x + player.width / 2 + 15, player.y - 20);
+    ctx.lineTo(player.x + player.width / 2, player.y - 50);
+    ctx.closePath();
+    ctx.fill();
+  }
 
-    for (let i = cakes.length - 1; i >= 0; i--) {
-      cakes[i].update();
-      if (cakes[i].y - cakes[i].height > canvas.height) {
-        cakes.splice(i, 1);
-        continue;
-      }
+  function drawObstacles() {
+    obstacles.forEach(obs => {
+      ctx.fillStyle = obs.color;
+      ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    });
+  }
 
-      const cakeRect = cakes[i].getRect();
-      const playerRect = { x: player.x, y: player.y, width: player.width, height: player.height };
-      if (rectsOverlap(cakeRect, playerRect)) {
-        cakes.splice(i, 1);
-        score++;
-        scoreDisplay.textContent = `Torte prese: ${score}`;
-        if(score === 1) message.textContent = "Ottimo! Hai preso la prima torta!";
-        else if(score === 5) message.textContent = "Mmm... che dolcezza!";
-        else if(score === 10) message.textContent = "Sei il re/re della torta! 🎉";
-      }
-    }
+  function drawGround() {
+    ctx.fillStyle = '#d7c49e';
+    ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
   }
 
   function draw() {
-    if (!player) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // sfondo gradiente
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, '#ffe6cc');
-    grad.addColorStop(1, '#fff9f2');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // disegna torte
-    cakes.forEach(cake => cake.draw());
-
-    // disegna player
-    if(player.type === 'sposo') drawSposo(player.x, player.y);
-    else drawSposa(player.x, player.y);
+    drawGround();
+    drawPlayer();
+    drawObstacles();
   }
 
   function gameLoop(timestamp = 0) {
@@ -223,32 +175,22 @@
 
     update(delta);
     draw();
+
     requestAnimationFrame(gameLoop);
   }
 
-  function onInput(event) {
-    if (!player) return;
-    const rect = canvas.getBoundingClientRect();
-    let x;
-    if(event.touches) x = event.touches[0].clientX - rect.left;
-    else x = event.clientX - rect.left;
-
-    player.targetX = (x < canvas.width / 2) ? 20 : canvas.width - player.width - 20;
+  function jump() {
+    if (!player.jumping) {
+      player.vy = -15;
+      player.jumping = true;
+      message.textContent = "Salta gli ostacoli!";
+    }
   }
 
-  canvas.addEventListener('touchstart', onInput);
-  canvas.addEventListener('mousedown', onInput);
+  canvas.addEventListener('touchstart', jump);
+  canvas.addEventListener('mousedown', jump);
 
-  function startGame() {
-    score = 0;
-    scoreDisplay.textContent = `Torte prese: ${score}`;
-    cakes = [];
-    newPlayer();
-    gameLoop();
-  }
-
-  startGame();
-
+  gameLoop();
 })();
 </script>
 
