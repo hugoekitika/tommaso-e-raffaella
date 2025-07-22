@@ -106,6 +106,16 @@
   ];
   const totalImages = imageSources.length;
 
+  // DICHIARAZIONE DELLE VARIABILI QUI IN ALTO PER EVITARE "ReferenceError"
+  // Queste variabili devono essere dichiarate prima di essere usate in funzioni come resize() o startGame()
+  let player = null; // Spostato qui in alto
+  let score = 0;     // Spostato qui in alto
+  let rings = [];
+  let spawnTimer = 0;
+  const spawnInterval = 1000;
+  let lastTime = 0;
+
+
   // Funzione per caricare una singola immagine
   function loadImage(name, src) {
     const img = new Image();
@@ -140,16 +150,16 @@
     canvas.width = w;
     canvas.height = h;
     // Quando il canvas viene ridimensionato, riposiziona il player se necessario
+    // 'player' è ora dichiarato prima, quindi accessibile qui
     if (player) {
       player.x = canvas.width / 2 - player.width / 2;
       player.y = canvas.height - player.height - 20;
     }
   }
-  resize();
+  // Chiama resize una volta subito dopo la definizione
+  resize(); // Questa chiamata ora è sicura perché 'player' è già stato dichiarato
   window.addEventListener('resize', resize);
 
-  // Player: sposo o sposa casuale
-  let player = null;
 
   // Funzione per disegnare il player usando le immagini
   function drawPlayer(x, y, type) {
@@ -232,11 +242,13 @@
     }
   }
 
-  let rings = [];
-  let spawnTimer = 0;
-  const spawnInterval = 1000;
-  let lastTime = 0;
-  let score = 0;
+  // Le variabili rings, spawnTimer, spawnInterval, lastTime sono già dichiarate sopra
+  // let rings = [];
+  // let spawnTimer = 0;
+  // const spawnInterval = 1000;
+  // let lastTime = 0;
+  // let score = 0;
+
 
   function spawnRing() {
     // Genera la fedina in un punto casuale all'interno del canvas
@@ -356,6 +368,7 @@
 
   // Funzione per avviare il gioco dopo il caricamento delle risorse
   function startGame() {
+    // 'score' è ora dichiarato prima, quindi accessibile qui
     score = 0;
     scoreDisplay.textContent = `Fedi raccolte: ${score}`;
     message.textContent = "Aiuta lo sposo o la sposa a raccogliere tutte le fedi!";
