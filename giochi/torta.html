@@ -1,18 +1,198 @@
-
 <!DOCTYPE html>
 <html lang="it">
-<head><meta charset="UTF-8"><title>Corri verso la torta</title></head>
-<body style="text-align:center;font-family:sans-serif;">
-  <h2>🎂 Corri verso la torta!</h2>
-  <p>Clicca il più velocemente possibile!</p>
-  <p>Passi: <span id="steps">0</span></p>
-  <button onclick="step()">Corri!</button>
-  <script>
-    let steps = 0;
-    function step() {
-      steps++;
-      document.getElementById("steps").innerText = steps;
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>🎂 Corri verso la torta</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; overflow: hidden;
+    background: linear-gradient(180deg, #fff8f0, #f0e6d2);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+  }
+  #gameCanvas {
+    display: block;
+    margin: auto;
+    background: #fffef8;
+    border: 3px solid #b99868;
+    border-radius: 12px;
+    touch-action: none;
+  }
+  #scoreDisplay {
+    position: fixed;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #b99868;
+    text-shadow: 0 0 4px #fff;
+    user-select: none;
+  }
+  #message {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.1rem;
+    color: #8a6d36;
+    font-weight: 600;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="scoreDisplay">Distanza percorsa: 0 m</div>
+<canvas id="gameCanvas"></canvas>
+<div id="message">Tocca lo schermo o clicca per saltare gli ostacoli!</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const message = document.getElementById('message');
+
+  function resize() {
+    const w = Math.min(window.innerWidth, 400);
+    const h = Math.min(window.innerHeight - 60, 600);
+    canvas.width = w;
+    canvas.height = h;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const gravity = 0.8;
+  const player = {
+    x: 50,
+    y: 0,
+    width: 50,
+    height: 70,
+    vy: 0,
+    jumping: false,
+    color: '#b99868',
+  };
+
+  let obstacles = [];
+  let obstacleTimer = 0;
+  const obstacleInterval = 1500;
+  let distance = 0;
+  let lastTime = 0;
+  let speed = 4;
+
+  function spawnObstacle() {
+    const size = 30 + Math.random() * 20;
+    obstacles.push({
+      x: canvas.width,
+      y: canvas.height - size - 20,
+      width: size,
+      height: size,
+      color: '#8a6d36',
+    });
+  }
+
+  function rectCollision(r1, r2) {
+    return !(r2.x > r1.x + r1.width || 
+             r2.x + r2.width < r1.x || 
+             r2.y > r1.y + r1.height ||
+             r2.y + r2.height < r1.y);
+  }
+
+  function update(delta) {
+    // Player gravity
+    player.vy += gravity;
+    player.y += player.vy;
+
+    if (player.y + player.height > canvas.height - 20) {
+      player.y = canvas.height - 20 - player.height;
+      player.vy = 0;
+      player.jumping = false;
     }
-  </script>
+
+    // Obstacles movement
+    obstacleTimer += delta;
+    if (obstacleTimer > obstacleInterval) {
+      obstacleTimer = 0;
+      spawnObstacle();
+    }
+    obstacles.forEach(obs => obs.x -= speed);
+
+    // Remove offscreen obstacles
+    obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+    // Collision check
+    for (const obs of obstacles) {
+      if (rectCollision(player, obs)) {
+        // Game over: reset distance and obstacles
+        distance = 0;
+        obstacles = [];
+        message.textContent = "Oh no! Sei inciampato! Riprova :)";
+        break;
+      }
+    }
+
+    // Update distance
+    distance += speed * (delta / 16);
+    scoreDisplay.textContent = `Distanza percorsa: ${Math.floor(distance)} m`;
+  }
+
+  function drawPlayer() {
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // Torta semplice sopra player (triangolo rosa)
+    ctx.fillStyle = '#f5a1a1';
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.width / 2 - 15, player.y - 20);
+    ctx.lineTo(player.x + player.width / 2 + 15, player.y - 20);
+    ctx.lineTo(player.x + player.width / 2, player.y - 50);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawObstacles() {
+    obstacles.forEach(obs => {
+      ctx.fillStyle = obs.color;
+      ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    });
+  }
+
+  function drawGround() {
+    ctx.fillStyle = '#d7c49e';
+    ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGround();
+    drawPlayer();
+    drawObstacles();
+  }
+
+  function gameLoop(timestamp = 0) {
+    if (!lastTime) lastTime = timestamp;
+    const delta = timestamp - lastTime;
+    lastTime = timestamp;
+
+    update(delta);
+    draw();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  function jump() {
+    if (!player.jumping) {
+      player.vy = -15;
+      player.jumping = true;
+      message.textContent = "Salta gli ostacoli!";
+    }
+  }
+
+  canvas.addEventListener('touchstart', jump);
+  canvas.addEventListener('mousedown', jump);
+
+  gameLoop();
+})();
+</script>
+
 </body>
 </html>
