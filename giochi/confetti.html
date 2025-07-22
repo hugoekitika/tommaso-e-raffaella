@@ -1,17 +1,203 @@
-
 <!DOCTYPE html>
 <html lang="it">
-<head><meta charset="UTF-8"><title>Lancia i confetti</title></head>
-<body style="text-align:center;font-family:sans-serif;">
-  <h2>🎉 Lancia i confetti!</h2>
-  <p>Confetti lanciati: <span id="throws">0</span></p>
-  <button onclick="throwConfetti()">Lancia!</button>
-  <script>
-    let throws = 0;
-    function throwConfetti() {
-      throws++;
-      document.getElementById("throws").innerText = throws;
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>🎉 Lancia i confetti</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; overflow: hidden;
+    background: linear-gradient(180deg, #fff8f0, #f0e6d2);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+  }
+  #gameCanvas {
+    display: block;
+    margin: auto;
+    background: #fffef8;
+    border: 3px solid #b99868;
+    border-radius: 12px;
+    touch-action: none;
+  }
+  #scoreDisplay {
+    position: fixed;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #b99868;
+    text-shadow: 0 0 4px #fff;
+    user-select: none;
+  }
+  #timerDisplay {
+    position: fixed;
+    top: 45px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #b99868;
+    user-select: none;
+  }
+  #message {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.1rem;
+    color: #8a6d36;
+    font-weight: 600;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="scoreDisplay">Punteggio: 0</div>
+<div id="timerDisplay">Tempo rimasto: 30</div>
+<canvas id="gameCanvas"></canvas>
+<div id="message">Tocca lo schermo o clicca per lanciare un confetto!</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const message = document.getElementById('message');
+
+  function resize() {
+    const w = Math.min(window.innerWidth, 400);
+    const h = Math.min(window.innerHeight - 90, 600);
+    canvas.width = w;
+    canvas.height = h;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let score = 0;
+  let timeLeft = 30;
+  let gameOver = false;
+
+  const confetti = [];
+  const guests = [];
+
+  function spawnGuest() {
+    guests.push({
+      x: 30 + Math.random() * (canvas.width - 60),
+      y: 100 + Math.random() * 200,
+      radius: 20,
+      happy: Math.random() < 0.7
+    });
+  }
+
+  function drawConfetti() {
+    ctx.fillStyle = '#d48c27';
+    confetti.forEach(c => {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 7, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+  }
+
+  function drawGuests() {
+    guests.forEach(g => {
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.radius, 0, 2 * Math.PI);
+      ctx.fillStyle = g.happy ? '#2a7a2a' : '#a52a2a';
+      ctx.fill();
+
+      // smiley face
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(g.x - 7, g.y - 5, 5, 0, Math.PI * 2);
+      ctx.arc(g.x + 7, g.y - 5, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = g.happy ? '#000' : '#fff';
+      ctx.beginPath();
+      ctx.arc(g.x - 7, g.y - 5, 3, 0, Math.PI);
+      ctx.fill();
+
+      if (g.happy) {
+        ctx.beginPath();
+        ctx.arc(g.x + 7, g.y - 5, 3, 0, Math.PI);
+        ctx.fill();
+      }
+    });
+  }
+
+  function updateConfetti() {
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const c = confetti[i];
+      c.y -= c.speed;
+
+      // collision
+      for (let j = guests.length - 1; j >= 0; j--) {
+        const g = guests[j];
+        const dx = c.x - g.x;
+        const dy = c.y - g.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < g.radius + 7) {
+          if (g.happy) score++; else score--;
+          guests.splice(j, 1);
+          confetti.splice(i, 1);
+          break;
+        }
+      }
+
+      if (c.y < 0) confetti.splice(i, 1);
     }
-  </script>
+  }
+
+  function update() {
+    if (gameOver) return;
+    updateConfetti();
+    scoreDisplay.textContent = `Punteggio: ${score}`;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawConfetti();
+    drawGuests();
+  }
+
+  function loop() {
+    update();
+    draw();
+    if (!gameOver) requestAnimationFrame(loop);
+  }
+
+  canvas.addEventListener('touchstart', e => {
+    if (gameOver) return;
+    const rect = canvas.getBoundingClientRect();
+    let x = e.touches[0].clientX - rect.left;
+    confetti.push({ x, y: canvas.height - 30, speed: 6 + Math.random() * 2 });
+  });
+  canvas.addEventListener('mousedown', e => {
+    if (gameOver) return;
+    const rect = canvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    confetti.push({ x, y: canvas.height - 30, speed: 6 + Math.random() * 2 });
+  });
+
+  setInterval(() => {
+    if (!gameOver) spawnGuest();
+  }, 900);
+
+  const timerInterval = setInterval(() => {
+    if (!gameOver) {
+      timeLeft--;
+      timerDisplay.textContent = `Tempo rimasto: ${timeLeft}`;
+      if (timeLeft <= 0) {
+        gameOver = true;
+        clearInterval(timerInterval);
+        message.textContent = (score > 10) ? "Sei il re dei confetti! 🎉" : (score > 5) ? "Bel tiro! 🎊" : "Hai bisogno di più pratica! 🤭";
+      }
+    }
+  }, 1000);
+
+  loop();
+})();
+</script>
+
 </body>
 </html>
