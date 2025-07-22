@@ -1,0 +1,17 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Raccogli le fedi</title></head>
+<body style="text-align:center;font-family:sans-serif;">
+  <h2>💍 Raccogli le fedi!</h2>
+  <p>Punteggio: <span id="score">0</span></p>
+  <button onclick="collect()">Raccogli!</button>
+  <script>
+    let score = 0;
+    function collect() {
+      score++;
+      document.getElementById("score").innerText = score;
+    }
+  </script>
+</body>
+</html>

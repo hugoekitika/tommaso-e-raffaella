@@ -1,0 +1,18 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Corri verso la torta</title></head>
+<body style="text-align:center;font-family:sans-serif;">
+  <h2>🎂 Corri verso la torta!</h2>
+  <p>Clicca il più velocemente possibile!</p>
+  <p>Passi: <span id="steps">0</span></p>
+  <button onclick="step()">Corri!</button>
+  <script>
+    let steps = 0;
+    function step() {
+      steps++;
+      document.getElementById("steps").innerText = steps;
+    }
+  </script>
+</body>
+</html>

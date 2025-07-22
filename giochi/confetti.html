@@ -1,0 +1,17 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Lancia i confetti</title></head>
+<body style="text-align:center;font-family:sans-serif;">
+  <h2>🎉 Lancia i confetti!</h2>
+  <p>Confetti lanciati: <span id="throws">0</span></p>
+  <button onclick="throwConfetti()">Lancia!</button>
+  <script>
+    let throws = 0;
+    function throwConfetti() {
+      throws++;
+      document.getElementById("throws").innerText = throws;
+    }
+  </script>
+</body>
+</html>
