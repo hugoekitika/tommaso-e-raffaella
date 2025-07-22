@@ -7,35 +7,43 @@
 <style>
   body, html {
     margin: 0; padding: 0; overflow: hidden;
-    background: linear-gradient(180deg, #f9e8ff, #fff6ff);
+    background: linear-gradient(180deg, #fff8f0, #f0e6d2);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
   }
   #gameCanvas {
     display: block;
     margin: auto;
-    background: #fff6ff;
-    border: 4px solid #c69ddd;
-    border-radius: 14px;
+    background: #fffef8;
+    border: 3px solid #b99868;
+    border-radius: 12px;
     touch-action: none;
-    box-shadow: 0 0 12px rgba(198, 157, 221, 0.7);
   }
   #scoreDisplay {
     position: fixed;
     top: 10px; left: 50%;
     transform: translateX(-50%);
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    color: #c69ddd;
-    text-shadow: 0 0 5px #fff;
+    color: #b99868;
+    text-shadow: 0 0 4px #fff;
+    user-select: none;
+  }
+  #timerDisplay {
+    position: fixed;
+    top: 45px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #b99868;
     user-select: none;
   }
   #message {
     position: fixed;
     bottom: 20px; left: 50%;
     transform: translateX(-50%);
-    font-size: 1.2rem;
-    color: #9247a6;
+    font-size: 1.1rem;
+    color: #8a6d36;
     font-weight: 600;
     user-select: none;
   }
@@ -43,105 +51,151 @@
 </head>
 <body>
 
-<div id="scoreDisplay">Confetti lanciati: 0</div>
+<div id="scoreDisplay">Punteggio: 0</div>
+<div id="timerDisplay">Tempo rimasto: 30</div>
 <canvas id="gameCanvas"></canvas>
-<div id="message">Tocca o clicca per lanciare i confetti!</div>
+<div id="message">Tocca lo schermo o clicca per lanciare un confetto!</div>
 
 <script>
 (() => {
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   const scoreDisplay = document.getElementById('scoreDisplay');
+  const timerDisplay = document.getElementById('timerDisplay');
   const message = document.getElementById('message');
 
   function resize() {
     const w = Math.min(window.innerWidth, 400);
-    const h = Math.min(window.innerHeight - 60, 600);
+    const h = Math.min(window.innerHeight - 90, 600);
     canvas.width = w;
     canvas.height = h;
   }
   resize();
   window.addEventListener('resize', resize);
 
-  // Confetto colorato
-  class Confetto {
-    constructor(x, y) {
-      this.x = x;
-      this.y = y;
-      this.vy = -7 - Math.random() * 3;
-      this.vx = (Math.random() - 0.5) * 3;
-      this.size = 8;
-      this.color = `hsl(${Math.random()*360}, 80%, 60%)`;
-      this.life = 60;
-    }
-    update() {
-      this.x += this.vx;
-      this.y += this.vy;
-      this.vy += 0.3; // gravità verso il basso
-      this.life--;
-    }
-    draw() {
-      ctx.fillStyle = this.color;
+  let score = 0;
+  let timeLeft = 30;
+  let gameOver = false;
+
+  const confetti = [];
+  const guests = [];
+
+  function spawnGuest() {
+    guests.push({
+      x: 30 + Math.random() * (canvas.width - 60),
+      y: 100 + Math.random() * 200,
+      radius: 20,
+      happy: Math.random() < 0.7
+    });
+  }
+
+  function drawConfetti() {
+    ctx.fillStyle = '#d48c27';
+    confetti.forEach(c => {
       ctx.beginPath();
-      ctx.ellipse(this.x, this.y, this.size/2, this.size, 0, 0, Math.PI * 2);
+      ctx.arc(c.x, c.y, 7, 0, 2 * Math.PI);
       ctx.fill();
-    }
-    isDead() {
-      return this.life <= 0 || this.y > canvas.height + this.size;
+    });
+  }
+
+  function drawGuests() {
+    guests.forEach(g => {
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.radius, 0, 2 * Math.PI);
+      ctx.fillStyle = g.happy ? '#2a7a2a' : '#a52a2a';
+      ctx.fill();
+
+      // smiley face
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(g.x - 7, g.y - 5, 5, 0, Math.PI * 2);
+      ctx.arc(g.x + 7, g.y - 5, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = g.happy ? '#000' : '#fff';
+      ctx.beginPath();
+      ctx.arc(g.x - 7, g.y - 5, 3, 0, Math.PI);
+      ctx.fill();
+
+      if (g.happy) {
+        ctx.beginPath();
+        ctx.arc(g.x + 7, g.y - 5, 3, 0, Math.PI);
+        ctx.fill();
+      }
+    });
+  }
+
+  function updateConfetti() {
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const c = confetti[i];
+      c.y -= c.speed;
+
+      // collision
+      for (let j = guests.length - 1; j >= 0; j--) {
+        const g = guests[j];
+        const dx = c.x - g.x;
+        const dy = c.y - g.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < g.radius + 7) {
+          if (g.happy) score++; else score--;
+          guests.splice(j, 1);
+          confetti.splice(i, 1);
+          break;
+        }
+      }
+
+      if (c.y < 0) confetti.splice(i, 1);
     }
   }
 
-  let confetti = [];
-  let score = 0;
-
   function update() {
-    for(let i = confetti.length - 1; i >= 0; i--) {
-      confetti[i].update();
-      if(confetti[i].isDead()) {
-        confetti.splice(i, 1);
-      }
-    }
+    if (gameOver) return;
+    updateConfetti();
+    scoreDisplay.textContent = `Punteggio: ${score}`;
   }
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // sfondo gradiente
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, '#f9e8ff');
-    grad.addColorStop(1, '#fff6ff');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // disegna confetti
-    confetti.forEach(c => c.draw());
+    drawConfetti();
+    drawGuests();
   }
 
-  function gameLoop() {
+  function loop() {
     update();
     draw();
-    requestAnimationFrame(gameLoop);
+    if (!gameOver) requestAnimationFrame(loop);
   }
 
-  function onInput(event) {
+  canvas.addEventListener('touchstart', e => {
+    if (gameOver) return;
     const rect = canvas.getBoundingClientRect();
-    let x;
-    if(event.touches) x = event.touches[0].clientX - rect.left;
-    else x = event.clientX - rect.left;
+    let x = e.touches[0].clientX - rect.left;
+    confetti.push({ x, y: canvas.height - 30, speed: 6 + Math.random() * 2 });
+  });
+  canvas.addEventListener('mousedown', e => {
+    if (gameOver) return;
+    const rect = canvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    confetti.push({ x, y: canvas.height - 30, speed: 6 + Math.random() * 2 });
+  });
 
-    confetti.push(new Confetto(x, canvas.height - 20));
-    score++;
-    scoreDisplay.textContent = `Confetti lanciati: ${score}`;
-    if(score === 1) message.textContent = "Bravo! Primo lancio!";
-    else if(score === 10) message.textContent = "Pioggia di confetti!";
-    else if(score === 30) message.textContent = "Sei un maestro dei confetti! 🎉";
-  }
+  setInterval(() => {
+    if (!gameOver) spawnGuest();
+  }, 900);
 
-  canvas.addEventListener('touchstart', onInput);
-  canvas.addEventListener('mousedown', onInput);
+  const timerInterval = setInterval(() => {
+    if (!gameOver) {
+      timeLeft--;
+      timerDisplay.textContent = `Tempo rimasto: ${timeLeft}`;
+      if (timeLeft <= 0) {
+        gameOver = true;
+        clearInterval(timerInterval);
+        message.textContent = (score > 10) ? "Sei il re dei confetti! 🎉" : (score > 5) ? "Bel tiro! 🎊" : "Hai bisogno di più pratica! 🤭";
+      }
+    }
+  }, 1000);
 
-  gameLoop();
-
+  loop();
 })();
 </script>
 
