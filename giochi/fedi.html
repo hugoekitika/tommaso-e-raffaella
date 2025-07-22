@@ -3,17 +3,22 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>💍 Raccogli le fedi - versione canvas pura</title>
+<title>💍 Raccogli le fedi - Versione con Immagini!</title>
 <style>
   body, html {
     margin: 0; padding: 0; overflow: hidden;
     background: linear-gradient(180deg, #cce7ff, #fdf7f0);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Assicura che il body occupi l'intera altezza della viewport */
   }
   #gameCanvas {
     display: block;
-    margin: auto;
+    margin: 20px auto; /* Aggiunto margine per distanziare dagli elementi fissi */
     background: #fffef8;
     border: 4px solid #b99868;
     border-radius: 14px;
@@ -29,6 +34,7 @@
     color: #b99868;
     text-shadow: 0 0 5px #fff;
     user-select: none;
+    z-index: 10; /* Assicura che sia sopra il canvas */
   }
   #message {
     position: fixed;
@@ -38,6 +44,30 @@
     color: #8a6d36;
     font-weight: 600;
     user-select: none;
+    text-align: center;
+    padding: 0 10px; /* Aggiunto padding per evitare che il testo tocchi i bordi */
+    box-sizing: border-box; /* Include padding nella larghezza */
+    max-width: 90%; /* Limita la larghezza del messaggio */
+    z-index: 10; /* Assicura che sia sopra il canvas */
+  }
+  #loadingScreen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    color: #b99868;
+    font-weight: bold;
+    z-index: 100;
+    flex-direction: column;
+  }
+  #loadingScreen img {
+    width: 100px; /* Dimensione esempio per icona di caricamento */
+    height: 100px;
+    margin-bottom: 20px;
   }
 </style>
 </head>
@@ -47,53 +77,113 @@
 <canvas id="gameCanvas"></canvas>
 <div id="message">Aiuta lo sposo o la sposa a raccogliere tutte le fedi!</div>
 
+<div id="loadingScreen">
+  <img src="fedina.png" alt="Caricamento fedi..." />
+  Caricamento risorse...
+</div>
+
 <script>
 (() => {
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   const scoreDisplay = document.getElementById('scoreDisplay');
   const message = document.getElementById('message');
+  const loadingScreen = document.getElementById('loadingScreen');
+
+  // Dimensioni fisse per i personaggi e le fedine
+  const playerWidth = 60;
+  const playerHeight = 80;
+  const ringSize = 30; // La fedina avrà una dimensione di 30x30 pixel
+
+  // Oggetto per memorizzare le immagini caricate
+  const images = {};
+  let imagesLoadedCount = 0;
+  // Definisci qui le immagini che devi caricare e il loro percorso
+  const imageSources = [
+    { name: 'sposo', src: 'sposo.png' },
+    { name: 'sposa', src: 'sposa.png' },
+    { name: 'fedina', src: 'fedina.png' }
+  ];
+  const totalImages = imageSources.length;
+
+  // Funzione per caricare una singola immagine
+  function loadImage(name, src) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      imagesLoadedCount++;
+      if (imagesLoadedCount === totalImages) {
+        // Tutte le immagini sono caricate, nascondi la schermata di caricamento e avvia il gioco
+        loadingScreen.style.display = 'none';
+        startGame();
+      }
+    };
+    img.onerror = () => {
+      console.error(`Errore nel caricamento dell'immagine: ${src}. Assicurati che il file esista e il percorso sia corretto.`);
+      // Qui potresti voler gestire l'errore in modo più robusto,
+      // magari con un fallback al disegno a mano o un messaggio all'utente.
+      imagesLoadedCount++; // Conta anche le immagini fallite per non bloccare il caricamento
+      if (imagesLoadedCount === totalImages) {
+        loadingScreen.style.display = 'none';
+        startGame();
+      }
+    };
+    images[name] = img; // Memorizza l'oggetto Image caricato
+  }
+
+  // Avvia il caricamento di tutte le immagini
+  imageSources.forEach(img => loadImage(img.name, img.src));
 
   function resize() {
     const w = Math.min(window.innerWidth, 400);
-    const h = Math.min(window.innerHeight - 60, 600);
+    const h = Math.min(window.innerHeight - 80, 600); // Ridotto l'altezza disponibile per spazio messaggio/score
     canvas.width = w;
     canvas.height = h;
+    // Quando il canvas viene ridimensionato, riposiziona il player se necessario
+    if (player) {
+      player.x = canvas.width / 2 - player.width / 2;
+      player.y = canvas.height - player.height - 20;
+    }
   }
   resize();
   window.addEventListener('resize', resize);
 
-  // Player e fedine disegnati a mano con canvas
-
   // Player: sposo o sposa casuale
   let player = null;
-  const playerWidth = 60;
-  const playerHeight = 80;
 
-  function drawSposo(x, y) {
-    ctx.fillStyle = '#2b3e50'; // abito blu scuro
-    ctx.fillRect(x + 20, y + 40, 20, 35); // corpo
-    ctx.beginPath(); // testa
-    ctx.fillStyle = '#f9d5b3';
-    ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.fillRect(x + 22, y + 43, 5, 5); // cravatta
-    ctx.fillRect(x + 33, y + 43, 5, 5);
-  }
-
-  function drawSposa(x, y) {
-    ctx.fillStyle = '#f5f0e6'; // vestito bianco
-    ctx.beginPath();
-    ctx.moveTo(x + 10, y + 70);
-    ctx.lineTo(x + 30, y + 40);
-    ctx.lineTo(x + 50, y + 70);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath(); // testa
-    ctx.fillStyle = '#f9d5b3';
-    ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
-    ctx.fill();
+  // Funzione per disegnare il player usando le immagini
+  function drawPlayer(x, y, type) {
+    if (type === 'sposo' && images.sposo) {
+      ctx.drawImage(images.sposo, x, y, playerWidth, playerHeight);
+    } else if (type === 'sposa' && images.sposa) {
+      ctx.drawImage(images.sposa, x, y, playerWidth, playerHeight);
+    } else {
+      // Fallback: se l'immagine non è caricata, disegna a mano (come nel codice originale)
+      console.warn(`Immagine ${type} non caricata, usando fallback grafico.`);
+      if (type === 'sposo') {
+        ctx.fillStyle = '#2b3e50';
+        ctx.fillRect(x + 20, y + 40, 20, 35);
+        ctx.beginPath();
+        ctx.fillStyle = '#f9d5b3';
+        ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x + 22, y + 43, 5, 5);
+        ctx.fillRect(x + 33, y + 43, 5, 5);
+      } else if (type === 'sposa') {
+        ctx.fillStyle = '#f5f0e6';
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y + 70);
+        ctx.lineTo(x + 30, y + 40);
+        ctx.lineTo(x + 50, y + 70);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = '#f9d5b3';
+        ctx.arc(x + 30, y + 20, 15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 
   function newPlayer() {
@@ -106,33 +196,39 @@
     player.targetX = null;
   }
 
-  // Fedina: cerchio dorato
+  // Fedina: ora usa l'immagine
   class Ring {
     constructor(x, y) {
       this.x = x;
       this.y = y;
-      this.radius = 15;
+      this.size = ringSize; // Usiamo size per coerenza con le dimensioni dell'immagine
       this.speed = 2 + Math.random();
     }
     update() {
       this.y += this.speed;
     }
     draw() {
-      // cerchio esterno oro
-      ctx.beginPath();
-      ctx.strokeStyle = '#b99868';
-      ctx.lineWidth = 5;
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      ctx.stroke();
-      // cerchio interno bianco
-      ctx.beginPath();
-      ctx.strokeStyle = '#fffef8';
-      ctx.lineWidth = 4;
-      ctx.arc(this.x, this.y, this.radius - 6, 0, Math.PI * 2);
-      ctx.stroke();
+      if (images.fedina) {
+        // Disegna l'immagine centrata sulla posizione (x, y)
+        ctx.drawImage(images.fedina, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+      } else {
+        // Fallback: disegno a mano se l'immagine non è caricata
+        console.warn('Immagine fedina non caricata, usando fallback grafico.');
+        ctx.beginPath();
+        ctx.strokeStyle = '#b99868';
+        ctx.lineWidth = 5;
+        ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = '#fffef8';
+        ctx.lineWidth = 4;
+        ctx.arc(this.x, this.y, (this.size / 2) - 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
     getRect() {
-      return { x: this.x - this.radius, y: this.y - this.radius, width: this.radius*2, height: this.radius*2 };
+      // Per la collisione, la fedina è un quadrato attorno al suo centro
+      return { x: this.x - this.size / 2, y: this.y - this.size / 2, width: this.size, height: this.size };
     }
   }
 
@@ -143,8 +239,9 @@
   let score = 0;
 
   function spawnRing() {
-    const x = 20 + Math.random() * (canvas.width - 40);
-    rings.push(new Ring(x, -30));
+    // Genera la fedina in un punto casuale all'interno del canvas
+    const x = ringSize / 2 + Math.random() * (canvas.width - ringSize);
+    rings.push(new Ring(x, -ringSize)); // Inizia leggermente fuori dallo schermo
   }
 
   function rectsOverlap(r1, r2) {
@@ -157,6 +254,7 @@
   function update(delta) {
     if (!player) return;
 
+    // Movimento del player verso il targetX
     if (player.targetX !== null) {
       const dx = player.targetX - player.x;
       if (Math.abs(dx) < player.speed) {
@@ -167,18 +265,22 @@
       }
     }
 
+    // Limita il player entro i bordi del canvas
     if (player.x < 0) player.x = 0;
     if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
 
+    // Gestione dello spawn delle fedine
     spawnTimer += delta;
     if (spawnTimer > spawnInterval) {
       spawnTimer = 0;
       spawnRing();
     }
 
+    // Aggiornamento e collisione delle fedine
     for (let i = rings.length - 1; i >= 0; i--) {
       rings[i].update();
-      if (rings[i].y - rings[i].radius > canvas.height) {
+      // Rimuovi la fedina se esce dallo schermo
+      if (rings[i].y - rings[i].size / 2 > canvas.height) {
         rings.splice(i, 1);
         continue;
       }
@@ -190,18 +292,22 @@
         rings.splice(i, 1);
         score++;
         scoreDisplay.textContent = `Fedi raccolte: ${score}`;
+        // Messaggi a progressione di punteggio
         if(score === 1) message.textContent = "Bravo! Continua così!";
         else if(score === 5) message.textContent = "Sei un vero raccoglitore d'amore!";
         else if(score === 10) message.textContent = "L'anima gemella ti applaude! 💕";
+        else if(score === 20) message.textContent = "Un legame indissolubile!";
+        else if(score === 30) message.textContent = "Maestro delle Fedi! 💍💍💍";
       }
     }
   }
 
   function draw() {
     if (!player) return;
+    // Pulisce solo l'area interessata per un'ottimizzazione, ma per un gioco semplice clearRect è sufficiente
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // sfondo gradiente
+    // sfondo gradiente (ridisegnato ad ogni frame)
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     grad.addColorStop(0, '#cce7ff');
     grad.addColorStop(1, '#fdf7f0');
@@ -212,8 +318,7 @@
     rings.forEach(ring => ring.draw());
 
     // disegna player
-    if(player.type === 'sposo') drawSposo(player.x, player.y);
-    else drawSposa(player.x, player.y);
+    drawPlayer(player.x, player.y, player.type);
   }
 
   function gameLoop(timestamp = 0) {
@@ -226,29 +331,41 @@
     requestAnimationFrame(gameLoop);
   }
 
+  // Gestione input (mouse e touch)
   function onInput(event) {
     if (!player) return;
     const rect = canvas.getBoundingClientRect();
     let x;
-    if(event.touches) x = event.touches[0].clientX - rect.left;
-    else x = event.clientX - rect.left;
+    if(event.touches) {
+      x = event.touches[0].clientX - rect.left;
+    } else {
+      x = event.clientX - rect.left;
+    }
 
+    // Muove il player a sinistra o a destra in base a dove l'utente clicca/tocca
     player.targetX = (x < canvas.width / 2) ? 20 : canvas.width - player.width - 20;
+    // Impedisce lo scrolling sui dispositivi touch
+    event.preventDefault();
   }
 
   canvas.addEventListener('touchstart', onInput);
   canvas.addEventListener('mousedown', onInput);
+  // Impedisce lo scrolling del browser quando si trascina sul canvas
+  canvas.addEventListener('touchmove', (e) => e.preventDefault());
 
+
+  // Funzione per avviare il gioco dopo il caricamento delle risorse
   function startGame() {
     score = 0;
     scoreDisplay.textContent = `Fedi raccolte: ${score}`;
+    message.textContent = "Aiuta lo sposo o la sposa a raccogliere tutte le fedi!";
     rings = [];
     newPlayer();
-    gameLoop();
+    gameLoop(); // Avvia il loop di gioco
   }
 
-  startGame();
-
+  // NOTA: startGame() viene ora chiamata solo dopo che tutte le immagini sono caricate
+  // all'interno della funzione loadImage()
 })();
 </script>
 
