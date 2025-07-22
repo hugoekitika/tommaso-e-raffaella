@@ -1,17 +1,216 @@
-
 <!DOCTYPE html>
 <html lang="it">
-<head><meta charset="UTF-8"><title>Raccogli le fedi</title></head>
-<body style="text-align:center;font-family:sans-serif;">
-  <h2>💍 Raccogli le fedi!</h2>
-  <p>Punteggio: <span id="score">0</span></p>
-  <button onclick="collect()">Raccogli!</button>
-  <script>
-    let score = 0;
-    function collect() {
-      score++;
-      document.getElementById("score").innerText = score;
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>💍 Raccogli le fedi</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; overflow: hidden;
+    background: linear-gradient(180deg, #fff8f0, #f0e6d2);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+  }
+  #gameCanvas {
+    display: block;
+    margin: auto;
+    background: #fffef8;
+    border: 3px solid #b99868;
+    border-radius: 12px;
+    touch-action: none;
+  }
+  #scoreDisplay {
+    position: fixed;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #b99868;
+    text-shadow: 0 0 4px #fff;
+    user-select: none;
+  }
+  #message {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.1rem;
+    color: #8a6d36;
+    font-weight: 600;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="scoreDisplay">Fedi raccolte: 0</div>
+<canvas id="gameCanvas"></canvas>
+<div id="message">Tocca il lato destro o sinistro per spostarti e raccogliere le fedi!</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const message = document.getElementById('message');
+
+  // Dimensione canvas full width (max 400px) and height 600px approx for phones
+  function resize() {
+    const w = Math.min(window.innerWidth, 400);
+    const h = Math.min(window.innerHeight - 60, 600);
+    canvas.width = w;
+    canvas.height = h;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Player
+  const player = {
+    width: 60,
+    height: 60,
+    x: canvas.width / 2 - 30,
+    y: canvas.height - 80,
+    speed: 8,
+    targetX: null,
+  };
+
+  // Fedi
+  const rings = [];
+  const ringRadius = 20;
+  let spawnTimer = 0;
+  const spawnInterval = 1000; // ms
+  let lastTime = 0;
+  let score = 0;
+
+  function spawnRing() {
+    const x = ringRadius + Math.random() * (canvas.width - 2 * ringRadius);
+    rings.push({ x, y: -ringRadius * 2, radius: ringRadius, speed: 2 + Math.random() * 1 });
+  }
+
+  // Draw player as golden ring
+  function drawPlayer() {
+    const x = player.x + player.width / 2;
+    const y = player.y + player.height / 2;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#b99868';
+    ctx.fillStyle = '#f9f0c1';
+    ctx.beginPath();
+    ctx.ellipse(x, y, player.width/2, player.height/2, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+
+    // inner circle to create ring shape
+    ctx.beginPath();
+    ctx.fillStyle = '#fff8e1';
+    ctx.ellipse(x, y, player.width/3, player.height/3, 0, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  // Draw ring (fedina da raccogliere)
+  function drawRing(ring) {
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#d4af37';
+    ctx.fillStyle = '#fffacd';
+    ctx.beginPath();
+    ctx.arc(ring.x, ring.y, ring.radius, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.fillStyle = '#fff8b0';
+    ctx.arc(ring.x, ring.y, ring.radius * 0.6, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  // Check collision between player rect and ring circle
+  function collision(ring) {
+    const distX = Math.abs(ring.x - (player.x + player.width / 2));
+    const distY = Math.abs(ring.y - (player.y + player.height / 2));
+
+    if (distX > (player.width/2 + ring.radius)) return false;
+    if (distY > (player.height/2 + ring.radius)) return false;
+
+    if (distX <= (player.width/2)) return true;
+    if (distY <= (player.height/2)) return true;
+
+    const dx = distX - player.width/2;
+    const dy = distY - player.height/2;
+    return (dx*dx + dy*dy <= (ring.radius * ring.radius));
+  }
+
+  function update(delta) {
+    // Move player smoothly toward targetX (set by input)
+    if (player.targetX !== null) {
+      const dx = player.targetX - player.x;
+      if (Math.abs(dx) < player.speed) {
+        player.x = player.targetX;
+        player.targetX = null;
+      } else {
+        player.x += (dx > 0 ? player.speed : -player.speed);
+      }
     }
-  </script>
+
+    // Clamp player inside canvas
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+    // Spawn rings
+    spawnTimer += delta;
+    if (spawnTimer > spawnInterval) {
+      spawnTimer = 0;
+      spawnRing();
+    }
+
+    // Move rings down, check collision or remove if off screen
+    for (let i = rings.length - 1; i >= 0; i--) {
+      rings[i].y += rings[i].speed;
+      if (rings[i].y - rings[i].radius > canvas.height) {
+        rings.splice(i, 1);
+        continue;
+      }
+      if (collision(rings[i])) {
+        rings.splice(i, 1);
+        score++;
+        scoreDisplay.textContent = `Fedi raccolte: ${score}`;
+        if(score === 1) message.textContent = "Bravo! Continua così!";
+        else if(score === 5) message.textContent = "Sei un vero raccoglitore d'amore!";
+        else if(score === 10) message.textContent = "L'anima gemella ti applaude! 💕";
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPlayer();
+    rings.forEach(drawRing);
+  }
+
+  function gameLoop(timestamp = 0) {
+    if (!lastTime) lastTime = timestamp;
+    const delta = timestamp - lastTime;
+    lastTime = timestamp;
+
+    update(delta);
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Input: touch or mouse click left or right side of screen
+  function onInput(event) {
+    const rect = canvas.getBoundingClientRect();
+    let x;
+    if(event.touches) x = event.touches[0].clientX - rect.left;
+    else x = event.clientX - rect.left;
+
+    // TargetX: move player center to left or right half
+    player.targetX = (x < canvas.width / 2) ? 20 : canvas.width - player.width - 20;
+  }
+
+  canvas.addEventListener('touchstart', onInput);
+  canvas.addEventListener('mousedown', onInput);
+
+  gameLoop();
+})();
+</script>
+
 </body>
 </html>
