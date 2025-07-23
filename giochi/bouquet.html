@@ -1,154 +1,177 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <title>Lancio del Bouquet - Verticale</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Lancia il Bouquet - Verticale</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
+      height: 100%;
       background-color: #fff7f0;
     }
     canvas {
       display: block;
-      background-color: #fff;
-    }
-    #overlay {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: #b85c38;
-      font-family: sans-serif;
-      font-size: 18px;
-      z-index: 10;
+      margin: 0 auto;
+      background: url("img/sfondo_bouquet.png") no-repeat center center;
+      background-size: cover;
     }
   </style>
 </head>
 <body>
-  <div id="overlay">
-    <div id="timer">Tempo: 15</div>
-    <div id="score">Punteggio: 0</div>
-  </div>
-  <canvas id="gameCanvas"></canvas>
+  <canvas id="gameCanvas" width="400" height="700"></canvas>
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
     const sposaImg = new Image();
+    sposaImg.src = 'img/sposa_bouquet.png';
+
     const bouquetImg = new Image();
+    bouquetImg.src = 'img/bouquet.png';
+
     const testimoneImg = new Image();
+    testimoneImg.src = 'img/testimone.png';
 
-    sposaImg.src = "img/sposa_bouquet.png";
-    bouquetImg.src = "img/bouquet.png";
-    testimoneImg.src = "img/testimone.png";
-
-    const bouquetSpeed = 10;
-    const testimoneSpeed = 2;
-    const spawnInterval = 1200;
-
-    let score = 0;
-    let timeLeft = 15;
-    let gameOver = false;
-
-    const sposa = {
-      x: canvas.width / 2 - 40,
-      y: canvas.height - 100,
-      width: 80,
-      height: 80
+    const game = {
+      width: canvas.width,
+      height: canvas.height,
+      timeLeft: 15,
+      score: 0,
+      bouquets: [],
+      testimoni: [],
+      timerStarted: false
     };
 
-    const bouquets = [];
-    const testimoni = [];
+    const sposa = {
+      x: game.width / 2 - 50,
+      y: game.height - 120,
+      width: 100,
+      height: 100
+    };
+
+    class Testimone {
+      constructor() {
+        this.x = Math.random() * (game.width - 60);
+        this.y = -60;
+        this.width = 60;
+        this.height = 60;
+        this.speed = 1.5 + Math.random() * 1.5;
+      }
+
+      update() {
+        this.y += this.speed;
+      }
+
+      draw() {
+        ctx.drawImage(testimoneImg, this.x, this.y, this.width, this.height);
+      }
+    }
+
+    class Bouquet {
+      constructor(x, y, angle) {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.speed = 8;
+        this.angle = angle;
+      }
+
+      update() {
+        this.x += this.speed * Math.cos(this.angle);
+        this.y += this.speed * Math.sin(this.angle);
+      }
+
+      draw() {
+        ctx.drawImage(bouquetImg, this.x - 15, this.y - 15, 30, 30);
+      }
+    }
 
     function spawnTestimone() {
-      const x = Math.random() * (canvas.width - 60);
-      testimoni.push({ x, y: -60, width: 60, height: 60 });
+      game.testimoni.push(new Testimone());
+    }
+
+    function launchBouquet(x, y) {
+      const dx = x - (sposa.x + sposa.width / 2);
+      const dy = y - (sposa.y);
+      const angle = Math.atan2(dy, dx);
+      game.bouquets.push(new Bouquet(sposa.x + sposa.width / 2, sposa.y, angle));
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (!game.timerStarted) return;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      launchBouquet(clickX, clickY);
+    });
+
+    function startTimer() {
+      game.timerStarted = true;
+      const countdown = setInterval(() => {
+        game.timeLeft--;
+        if (game.timeLeft <= 0) {
+          clearInterval(countdown);
+          alert(`Tempo scaduto! Hai colpito ${game.score} testimoni 🎉`);
+          location.reload();
+        }
+      }, 1000);
     }
 
     function update() {
-      if (gameOver) return;
+      ctx.clearRect(0, 0, game.width, game.height);
 
-      // aggiorna posizioni
-      bouquets.forEach((b, i) => {
-        b.y -= bouquetSpeed;
-        if (b.y < -b.height) bouquets.splice(i, 1);
+      // Draw sposa
+      ctx.drawImage(sposaImg, sposa.x, sposa.y, sposa.width, sposa.height);
+
+      // Update and draw bouquets
+      game.bouquets.forEach((b, i) => {
+        b.update();
+        b.draw();
+
+        // Remove if out of bounds
+        if (b.y < 0 || b.x < 0 || b.x > game.width || b.y > game.height) {
+          game.bouquets.splice(i, 1);
+        }
       });
 
-      testimoni.forEach((t, i) => {
-        t.y += testimoneSpeed;
-        if (t.y > canvas.height) testimoni.splice(i, 1);
-      });
+      // Update and draw testimoni
+      game.testimoni.forEach((t, i) => {
+        t.update();
+        t.draw();
 
-      // collisioni
-      bouquets.forEach((b, bi) => {
-        testimoni.forEach((t, ti) => {
-          if (
-            b.x < t.x + t.width &&
-            b.x + b.width > t.x &&
-            b.y < t.y + t.height &&
-            b.y + b.height > t.y
-          ) {
-            bouquets.splice(bi, 1);
-            testimoni.splice(ti, 1);
-            score++;
-            document.getElementById("score").textContent = "Punteggio: " + score;
+        // Remove if out of bounds
+        if (t.y > game.height) {
+          game.testimoni.splice(i, 1);
+        }
+
+        // Collision detection
+        game.bouquets.forEach((b, j) => {
+          const dx = b.x - (t.x + t.width / 2);
+          const dy = b.y - (t.y + t.height / 2);
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < 30) {
+            game.testimoni.splice(i, 1);
+            game.bouquets.splice(j, 1);
+            game.score++;
           }
         });
       });
+
+      // Draw score & time
+      ctx.fillStyle = "#fff";
+      ctx.font = "20px sans-serif";
+      ctx.fillText(`Tempo: ${game.timeLeft}s`, 10, 30);
+      ctx.fillText(`Punti: ${game.score}`, 10, 60);
+
+      requestAnimationFrame(update);
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(sposaImg, sposa.x, sposa.y, sposa.width, sposa.height);
-
-      bouquets.forEach(b => {
-        ctx.drawImage(bouquetImg, b.x, b.y, b.width, b.height);
-      });
-
-      testimoni.forEach(t => {
-        ctx.drawImage(testimoneImg, t.x, t.y, t.width, t.height);
-      });
-    }
-
-    function gameLoop() {
-      update();
-      draw();
-      if (!gameOver) requestAnimationFrame(gameLoop);
-    }
-
-    function launchBouquet() {
-      if (gameOver) return;
-      const b = {
-        x: sposa.x + sposa.width / 2 - 15,
-        y: sposa.y - 30,
-        width: 30,
-        height: 30
-      };
-      bouquets.push(b);
-    }
-
-    canvas.addEventListener("click", launchBouquet);
-    canvas.addEventListener("touchstart", launchBouquet);
-
-    // countdown
-    const countdown = setInterval(() => {
-      timeLeft--;
-      document.getElementById("timer").textContent = "Tempo: " + timeLeft;
-      if (timeLeft <= 0) {
-        clearInterval(countdown);
-        gameOver = true;
-        alert("Tempo scaduto! Hai totalizzato " + score + " punti 🎯");
-      }
-    }, 1000);
-
-    // inizio
-    setInterval(spawnTestimone, spawnInterval);
-    gameLoop();
+    setInterval(spawnTestimone, 800);
+    setTimeout(startTimer, 1000);
+    update();
   </script>
 </body>
 </html>
