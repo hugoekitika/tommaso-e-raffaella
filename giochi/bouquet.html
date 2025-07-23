@@ -1,173 +1,153 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lancia il Bouquet 2D</title>
+  <meta charset="UTF-8" />
+  <title>Lancio del Bouquet - Verticale</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
+    html, body {
       margin: 0;
-      background-color: #fff7f0;
+      padding: 0;
       overflow: hidden;
+      background-color: #fff7f0;
     }
     canvas {
       display: block;
-      margin: 0 auto;
-      background: #d0f0c0;
+      background-color: #fff;
+    }
+    #overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #b85c38;
+      font-family: sans-serif;
+      font-size: 18px;
+      z-index: 10;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <div id="overlay">
+    <div id="timer">Tempo: 15</div>
+    <div id="score">Punteggio: 0</div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    const GRAVITY = 0.5;
-    const MAX_POWER = 15;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    let sposaImg = new Image();
-    let bouquetImg = new Image();
-    let testimoneImg = new Image();
+    const sposaImg = new Image();
+    const bouquetImg = new Image();
+    const testimoneImg = new Image();
+
     sposaImg.src = "img/sposa_bouquet.png";
     bouquetImg.src = "img/bouquet.png";
     testimoneImg.src = "img/testimone.png";
 
-    const sposa = { x: 80, y: canvas.height - 150 };
-    let bouquet = null;
-    let charging = false;
-    let chargePower = 0;
-    let launchAngle = Math.PI / 4;
+    const bouquetSpeed = 10;
+    const testimoneSpeed = 2;
+    const spawnInterval = 1200;
+
     let score = 0;
-    let shotsLeft = 5;
+    let timeLeft = 15;
+    let gameOver = false;
 
-    const targets = [];
-    const NUM_TARGETS = 3;
+    const sposa = {
+      x: canvas.width / 2 - 40,
+      y: canvas.height - 100,
+      width: 80,
+      height: 80
+    };
 
-    function resetTargets() {
-      targets.length = 0;
-      for (let i = 0; i < NUM_TARGETS; i++) {
-        targets.push({
-          x: 500 + i * 100 + Math.random() * 100,
-          y: canvas.height - 100 - Math.random() * 100,
-          hit: false
-        });
-      }
-    }
+    const bouquets = [];
+    const testimoni = [];
 
-    function drawTrajectory(x, y, angle, power) {
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(0,0,0,0.4)";
-      for (let t = 0; t < 30; t++) {
-        let dx = power * Math.cos(angle) * t * 0.5;
-        let dy = power * Math.sin(angle) * t * 0.5 - 0.5 * GRAVITY * (t * 0.5) * (t * 0.5);
-        if (t === 0) ctx.moveTo(x + dx, y - dy);
-        else ctx.lineTo(x + dx, y - dy);
-      }
-      ctx.stroke();
-    }
-
-    function launchBouquet() {
-      bouquet = {
-        x: sposa.x + 40,
-        y: sposa.y - 20,
-        vx: chargePower * Math.cos(launchAngle),
-        vy: -chargePower * Math.sin(launchAngle)
-      };
-      chargePower = 0;
-      charging = false;
-      shotsLeft--;
+    function spawnTestimone() {
+      const x = Math.random() * (canvas.width - 60);
+      testimoni.push({ x, y: -60, width: 60, height: 60 });
     }
 
     function update() {
-      if (bouquet) {
-        bouquet.vy += GRAVITY;
-        bouquet.x += bouquet.vx;
-        bouquet.y += bouquet.vy;
+      if (gameOver) return;
 
-        for (let target of targets) {
-          if (!target.hit && bouquet.x > target.x && bouquet.x < target.x + 50 && bouquet.y > target.y && bouquet.y < target.y + 50) {
-            target.hit = true;
+      // aggiorna posizioni
+      bouquets.forEach((b, i) => {
+        b.y -= bouquetSpeed;
+        if (b.y < -b.height) bouquets.splice(i, 1);
+      });
+
+      testimoni.forEach((t, i) => {
+        t.y += testimoneSpeed;
+        if (t.y > canvas.height) testimoni.splice(i, 1);
+      });
+
+      // collisioni
+      bouquets.forEach((b, bi) => {
+        testimoni.forEach((t, ti) => {
+          if (
+            b.x < t.x + t.width &&
+            b.x + b.width > t.x &&
+            b.y < t.y + t.height &&
+            b.y + b.height > t.y
+          ) {
+            bouquets.splice(bi, 1);
+            testimoni.splice(ti, 1);
             score++;
+            document.getElementById("score").textContent = "Punteggio: " + score;
           }
-        }
-
-        if (bouquet.y > canvas.height || bouquet.x > canvas.width) {
-          bouquet = null;
-          if (shotsLeft <= 0) {
-            if (targets.every(t => t.hit)) {
-              resetTargets();
-              shotsLeft = 5;
-            } else {
-              alert("Hai finito i colpi! Punteggio: " + score);
-              score = 0;
-              shotsLeft = 5;
-              resetTargets();
-            }
-          }
-        }
-      }
+        });
+      });
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(sposaImg, sposa.x, sposa.y, 100, 150);
+      ctx.drawImage(sposaImg, sposa.x, sposa.y, sposa.width, sposa.height);
 
-      if (bouquet) {
-        ctx.drawImage(bouquetImg, bouquet.x, bouquet.y, 30, 30);
-      }
+      bouquets.forEach(b => {
+        ctx.drawImage(bouquetImg, b.x, b.y, b.width, b.height);
+      });
 
-      for (let t of targets) {
-        if (!t.hit) ctx.drawImage(testimoneImg, t.x, t.y, 50, 50);
-      }
-
-      if (charging) {
-        drawTrajectory(sposa.x + 40, sposa.y - 20, launchAngle, chargePower);
-      }
-
-      ctx.fillStyle = "#b85c38";
-      ctx.font = "18px sans-serif";
-      ctx.fillText("Punteggio: " + score, 10, 20);
-      ctx.fillText("Tiri rimasti: " + shotsLeft, 10, 40);
+      testimoni.forEach(t => {
+        ctx.drawImage(testimoneImg, t.x, t.y, t.width, t.height);
+      });
     }
 
     function gameLoop() {
       update();
       draw();
-      requestAnimationFrame(gameLoop);
+      if (!gameOver) requestAnimationFrame(gameLoop);
     }
 
-    canvas.addEventListener("mousedown", () => {
-      if (!bouquet && shotsLeft > 0) {
-        charging = true;
-        chargePower = 0;
-      }
-    });
-
-    canvas.addEventListener("mouseup", () => {
-      if (charging) {
-        launchBouquet();
-      }
-    });
-
-    canvas.addEventListener("mousemove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const dx = mouseX - (sposa.x + 40);
-      const dy = (sposa.y - 20) - mouseY;
-      launchAngle = Math.atan2(dy, dx);
-    });
-
-    function chargeLoop() {
-      if (charging && chargePower < MAX_POWER) {
-        chargePower += 0.2;
-      }
-      setTimeout(chargeLoop, 16);
+    function launchBouquet() {
+      if (gameOver) return;
+      const b = {
+        x: sposa.x + sposa.width / 2 - 15,
+        y: sposa.y - 30,
+        width: 30,
+        height: 30
+      };
+      bouquets.push(b);
     }
 
-    resetTargets();
-    chargeLoop();
+    canvas.addEventListener("click", launchBouquet);
+    canvas.addEventListener("touchstart", launchBouquet);
+
+    // countdown
+    const countdown = setInterval(() => {
+      timeLeft--;
+      document.getElementById("timer").textContent = "Tempo: " + timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(countdown);
+        gameOver = true;
+        alert("Tempo scaduto! Hai totalizzato " + score + " punti 🎯");
+      }
+    }, 1000);
+
+    // inizio
+    setInterval(spawnTestimone, spawnInterval);
     gameLoop();
   </script>
 </body>
