@@ -1,44 +1,44 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>🎂 Corri verso la torta</title>
-<style>
-  body, html {
-    margin: 0; padding: 0; overflow: hidden;
-    background: linear-gradient(180deg, #fff8f0, #f0e6d2);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
-  }
-  #gameCanvas {
-    display: block;
-    margin: auto;
-    background: #fffef8;
-    border: 3px solid #b99868;
-    border-radius: 12px;
-    touch-action: none;
-  }
-  #scoreDisplay {
-    position: fixed;
-    top: 10px; left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #b99868;
-    text-shadow: 0 0 4px #fff;
-    user-select: none;
-  }
-  #message {
-    position: fixed;
-    bottom: 20px; left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.1rem;
-    color: #8a6d36;
-    font-weight: 600;
-    user-select: none;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>🎂 Corri verso la torta</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0; overflow: hidden;
+      background: linear-gradient(180deg, #fff8f0, #f0e6d2);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      user-select: none;
+    }
+    #gameCanvas {
+      display: block;
+      margin: auto;
+      background: #fffef8;
+      border: 3px solid #b99868;
+      border-radius: 12px;
+      touch-action: none;
+    }
+    #scoreDisplay {
+      position: fixed;
+      top: 10px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #b99868;
+      text-shadow: 0 0 4px #fff;
+      user-select: none;
+    }
+    #message {
+      position: fixed;
+      bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.1rem;
+      color: #8a6d36;
+      font-weight: 600;
+      user-select: none;
+    }
+  </style>
 </head>
 <body>
 
@@ -69,9 +69,11 @@
     width: 50,
     height: 70,
     vy: 0,
-    jumping: false,
-    color: '#b99868',
+    jumping: false
   };
+
+  const playerImage = new Image();
+  playerImage.src = 'img/sposo_salta.png';
 
   let obstacles = [];
   let obstacleTimer = 0;
@@ -99,7 +101,6 @@
   }
 
   function update(delta) {
-    // Player gravity
     player.vy += gravity;
     player.y += player.vy;
 
@@ -109,21 +110,17 @@
       player.jumping = false;
     }
 
-    // Obstacles movement
     obstacleTimer += delta;
     if (obstacleTimer > obstacleInterval) {
       obstacleTimer = 0;
       spawnObstacle();
     }
-    obstacles.forEach(obs => obs.x -= speed);
 
-    // Remove offscreen obstacles
+    obstacles.forEach(obs => obs.x -= speed);
     obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
 
-    // Collision check
     for (const obs of obstacles) {
       if (rectCollision(player, obs)) {
-        // Game over: reset distance and obstacles
         distance = 0;
         obstacles = [];
         message.textContent = "Oh no! Sei inciampato! Riprova :)";
@@ -131,22 +128,12 @@
       }
     }
 
-    // Update distance
     distance += speed * (delta / 16);
     scoreDisplay.textContent = `Distanza percorsa: ${Math.floor(distance)} m`;
   }
 
   function drawPlayer() {
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-    // Torta semplice sopra player (triangolo rosa)
-    ctx.fillStyle = '#f5a1a1';
-    ctx.beginPath();
-    ctx.moveTo(player.x + player.width / 2 - 15, player.y - 20);
-    ctx.lineTo(player.x + player.width / 2 + 15, player.y - 20);
-    ctx.lineTo(player.x + player.width / 2, player.y - 50);
-    ctx.closePath();
-    ctx.fill();
+    ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
   }
 
   function drawObstacles() {
