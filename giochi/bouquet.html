@@ -1,297 +1,174 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>💐 Lancia il Bouquet</title>
-<style>
-  body, html {
-    margin: 0; padding: 0; overflow: hidden;
-    background: linear-gradient(180deg, #ffe7e7, #fff6f6);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
-  }
-  #gameCanvas {
-    display: block;
-    margin: auto;
-    background: #fff6f6;
-    border: 4px solid #e28888;
-    border-radius: 14px;
-    touch-action: none;
-    box-shadow: 0 0 14px rgba(226, 136, 136, 0.7);
-  }
-  #scoreDisplay {
-    position: fixed;
-    top: 10px; left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #e28888;
-    text-shadow: 0 0 5px #fff;
-    user-select: none;
-  }
-  #message {
-    position: fixed;
-    bottom: 20px; left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.2rem;
-    color: #a44444;
-    font-weight: 600;
-    user-select: none;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lancia il Bouquet 2D</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #fff7f0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #d0f0c0;
+    }
+  </style>
 </head>
 <body>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-<div id="scoreDisplay">Punteggio: 0</div>
-<canvas id="gameCanvas"></canvas>
-<div id="message">Tocca o clicca per lanciare il bouquet!</div>
+    const GRAVITY = 0.5;
+    const MAX_POWER = 15;
 
-<script>
-(() => {
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const scoreDisplay = document.getElementById('scoreDisplay');
-  const message = document.getElementById('message');
+    let sposaImg = new Image();
+    let bouquetImg = new Image();
+    let testimoneImg = new Image();
+    sposaImg.src = "img/sposa_bouquet.png";
+    bouquetImg.src = "img/bouquet.png";
+    testimoneImg.src = "img/testimone.png";
 
-  function resize() {
-    const w = Math.min(window.innerWidth, 400);
-    const h = Math.min(window.innerHeight - 60, 600);
-    canvas.width = w;
-    canvas.height = h;
-  }
-  resize();
-  window.addEventListener('resize', resize);
+    const sposa = { x: 80, y: canvas.height - 150 };
+    let bouquet = null;
+    let charging = false;
+    let chargePower = 0;
+    let launchAngle = Math.PI / 4;
+    let score = 0;
+    let shotsLeft = 5;
 
-  // Lanciatore (personaggio stilizzato)
-  const launcher = {
-    x: 0,
-    y: 0,
-    width: 50,
-    height: 80,
-  };
+    const targets = [];
+    const NUM_TARGETS = 3;
 
-  // Bouquet che si muove orizzontalmente prima del lancio
-  const bouquet = {
-    x: 0,
-    y: 0,
-    radius: 15,
-    speed: 3,
-    direction: 1, // 1 = destra, -1 = sinistra
-    isLaunched: false,
-    vy: 0,
-    launchSpeed: -8,
-  };
+    function resetTargets() {
+      targets.length = 0;
+      for (let i = 0; i < NUM_TARGETS; i++) {
+        targets.push({
+          x: 500 + i * 100 + Math.random() * 100,
+          y: canvas.height - 100 - Math.random() * 100,
+          hit: false
+        });
+      }
+    }
 
-  // Bersaglio (gruppo di amiche stilizzato)
-  const target = {
-    x: 0,
-    y: 0,
-    width: 120,
-    height: 60,
-  };
-
-  let score = 0;
-  let isWaiting = false;
-
-  function setupPositions() {
-    launcher.x = canvas.width / 2 - launcher.width / 2;
-    launcher.y = canvas.height - launcher.height - 20;
-
-    bouquet.x = launcher.x + launcher.width / 2;
-    bouquet.y = launcher.y - bouquet.radius - 5;
-    bouquet.isLaunched = false;
-    bouquet.vy = 0;
-    bouquet.speed = 3;
-    bouquet.direction = 1;
-
-    target.x = canvas.width / 2 - target.width / 2;
-    target.y = 80;
-  }
-
-  function drawLauncher() {
-    // Corpo
-    ctx.fillStyle = '#b35a5a';
-    ctx.fillRect(launcher.x, launcher.y, launcher.width, launcher.height);
-    // Testa
-    ctx.beginPath();
-    ctx.fillStyle = '#f9d5b3';
-    ctx.arc(launcher.x + launcher.width / 2, launcher.y + 20, 18, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawBouquet() {
-    // Stelo
-    ctx.strokeStyle = '#3b6a3b';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(bouquet.x, bouquet.y);
-    ctx.lineTo(bouquet.x, bouquet.y + 30);
-    ctx.stroke();
-
-    // Fiore (cerchio rosa con puntini bianchi)
-    ctx.fillStyle = '#e673a0';
-    ctx.beginPath();
-    ctx.arc(bouquet.x, bouquet.y, bouquet.radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Puntini
-    ctx.fillStyle = '#fff';
-    for(let i = 0; i < 6; i++) {
-      const angle = (Math.PI * 2 / 6) * i;
-      const px = bouquet.x + Math.cos(angle) * (bouquet.radius * 0.6);
-      const py = bouquet.y + Math.sin(angle) * (bouquet.radius * 0.6);
+    function drawTrajectory(x, y, angle, power) {
       ctx.beginPath();
-      ctx.arc(px, py, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  function drawTarget() {
-    // Gruppo di amiche stilizzato: 3 teste rotonde e corpi stilizzati
-    const spacing = target.width / 4;
-    const baseY = target.y + target.height - 10;
-    for(let i = 0; i < 3; i++) {
-      const cx = target.x + spacing * (i + 1);
-      // teste
-      ctx.beginPath();
-      ctx.fillStyle = '#f9d5b3';
-      ctx.arc(cx, target.y + 15, 15, 0, Math.PI * 2);
-      ctx.fill();
-      // corpi
-      ctx.fillStyle = '#b35a5a';
-      ctx.fillRect(cx - 10, baseY - 40, 20, 40);
-    }
-  }
-
-  function rectsOverlap(r1, r2) {
-    return !(r1.x + r1.width < r2.x ||
-             r1.x > r2.x + r2.width ||
-             r1.y + r1.height < r2.y ||
-             r1.y > r2.y + r2.height);
-  }
-
-  function bouquetRect() {
-    return {
-      x: bouquet.x - bouquet.radius,
-      y: bouquet.y - bouquet.radius,
-      width: bouquet.radius * 2,
-      height: bouquet.radius * 2
-    };
-  }
-
-  function targetRect() {
-    return {
-      x: target.x,
-      y: target.y,
-      width: target.width,
-      height: target.height
-    };
-  }
-
-  function update(delta) {
-    if (isWaiting) return;
-
-    if (!bouquet.isLaunched) {
-      // Movimento orizzontale bouquet
-      bouquet.x += bouquet.speed * bouquet.direction;
-      if (bouquet.x + bouquet.radius > canvas.width) {
-        bouquet.direction = -1;
-        bouquet.x = canvas.width - bouquet.radius;
-      } else if (bouquet.x - bouquet.radius < 0) {
-        bouquet.direction = 1;
-        bouquet.x = bouquet.radius;
+      ctx.strokeStyle = "rgba(0,0,0,0.4)";
+      for (let t = 0; t < 30; t++) {
+        let dx = power * Math.cos(angle) * t * 0.5;
+        let dy = power * Math.sin(angle) * t * 0.5 - 0.5 * GRAVITY * (t * 0.5) * (t * 0.5);
+        if (t === 0) ctx.moveTo(x + dx, y - dy);
+        else ctx.lineTo(x + dx, y - dy);
       }
-    } else {
-      // bouquet lanciato verso l'alto
-      bouquet.y += bouquet.vy;
-      bouquet.vy += 0.3; // gravità (accelera verso il basso)
+      ctx.stroke();
+    }
 
-      // se cade sotto il launcher, reset
-      if (bouquet.y - bouquet.radius > canvas.height) {
-        isWaiting = true;
-        message.textContent = "Ritenta! Tocca per lanciare di nuovo.";
-        setTimeout(() => {
-          setupPositions();
-          isWaiting = false;
-          message.textContent = "Tocca o clicca per lanciare il bouquet!";
-        }, 1500);
-      }
+    function launchBouquet() {
+      bouquet = {
+        x: sposa.x + 40,
+        y: sposa.y - 20,
+        vx: chargePower * Math.cos(launchAngle),
+        vy: -chargePower * Math.sin(launchAngle)
+      };
+      chargePower = 0;
+      charging = false;
+      shotsLeft--;
+    }
 
-      // verifica collisione con bersaglio
-      if (rectsOverlap(bouquetRect(), targetRect())) {
-        // Calcolo punteggio in base a distanza dal centro del target
-        const centerTargetX = target.x + target.width / 2;
-        const dist = Math.abs(bouquet.x - centerTargetX);
-        let points = 0;
-        if(dist < 15) points = 10;
-        else if(dist < 30) points = 7;
-        else if(dist < 50) points = 4;
-        else points = 1;
+    function update() {
+      if (bouquet) {
+        bouquet.vy += GRAVITY;
+        bouquet.x += bouquet.vx;
+        bouquet.y += bouquet.vy;
 
-        score += points;
-        scoreDisplay.textContent = `Punteggio: ${score}`;
+        for (let target of targets) {
+          if (!target.hit && bouquet.x > target.x && bouquet.x < target.x + 50 && bouquet.y > target.y && bouquet.y < target.y + 50) {
+            target.hit = true;
+            score++;
+          }
+        }
 
-        message.textContent = `Bravo! Hai guadagnato ${points} punti! Tocca per rilanciare.`;
-        isWaiting = true;
-
-        setTimeout(() => {
-          setupPositions();
-          isWaiting = false;
-          message.textContent = "Tocca o clicca per lanciare il bouquet!";
-        }, 1800);
+        if (bouquet.y > canvas.height || bouquet.x > canvas.width) {
+          bouquet = null;
+          if (shotsLeft <= 0) {
+            if (targets.every(t => t.hit)) {
+              resetTargets();
+              shotsLeft = 5;
+            } else {
+              alert("Hai finito i colpi! Punteggio: " + score);
+              score = 0;
+              shotsLeft = 5;
+              resetTargets();
+            }
+          }
+        }
       }
     }
-  }
 
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(sposaImg, sposa.x, sposa.y, 100, 150);
 
-    // sfondo gradiente
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, '#ffe7e7');
-    grad.addColorStop(1, '#fff6f6');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (bouquet) {
+        ctx.drawImage(bouquetImg, bouquet.x, bouquet.y, 30, 30);
+      }
 
-    // disegna bersaglio
-    drawTarget();
+      for (let t of targets) {
+        if (!t.hit) ctx.drawImage(testimoneImg, t.x, t.y, 50, 50);
+      }
 
-    // disegna lanciatore
-    drawLauncher();
+      if (charging) {
+        drawTrajectory(sposa.x + 40, sposa.y - 20, launchAngle, chargePower);
+      }
 
-    // disegna bouquet
-    drawBouquet();
-  }
-
-  let lastTime = 0;
-  function gameLoop(timestamp = 0) {
-    if (!lastTime) lastTime = timestamp;
-    const delta = timestamp - lastTime;
-    lastTime = timestamp;
-
-    update(delta);
-    draw();
-    requestAnimationFrame(gameLoop);
-  }
-
-  function onInput() {
-    if (isWaiting) return;
-    if (!bouquet.isLaunched) {
-      bouquet.isLaunched = true;
-      bouquet.vy = bouquet.launchSpeed;
-      message.textContent = "Bouquet lanciato!";
+      ctx.fillStyle = "#b85c38";
+      ctx.font = "18px sans-serif";
+      ctx.fillText("Punteggio: " + score, 10, 20);
+      ctx.fillText("Tiri rimasti: " + shotsLeft, 10, 40);
     }
-  }
 
-  canvas.addEventListener('touchstart', onInput);
-  canvas.addEventListener('mousedown', onInput);
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
 
-  setupPositions();
-  gameLoop();
+    canvas.addEventListener("mousedown", () => {
+      if (!bouquet && shotsLeft > 0) {
+        charging = true;
+        chargePower = 0;
+      }
+    });
 
-})();
-</script>
+    canvas.addEventListener("mouseup", () => {
+      if (charging) {
+        launchBouquet();
+      }
+    });
 
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const dx = mouseX - (sposa.x + 40);
+      const dy = (sposa.y - 20) - mouseY;
+      launchAngle = Math.atan2(dy, dx);
+    });
+
+    function chargeLoop() {
+      if (charging && chargePower < MAX_POWER) {
+        chargePower += 0.2;
+      }
+      setTimeout(chargeLoop, 16);
+    }
+
+    resetTargets();
+    chargeLoop();
+    gameLoop();
+  </script>
 </body>
 </html>
