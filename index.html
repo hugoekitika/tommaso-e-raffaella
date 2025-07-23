@@ -3,52 +3,169 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gioco Matrimonio</title>
+  <title>Giochi di Nozze - Tommaso & Raffaella</title>
+  
+  <!-- Google Fonts leggeri -->
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans&family=Playfair+Display&display=swap" rel="stylesheet" />
+  
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Open Sans', sans-serif;
+      background: linear-gradient(to bottom right, #fff7f0, #fcece6);
+      color: #5a2a27;
       text-align: center;
-      padding: 2em;
-      background-color: #fff7f0;
+      padding: 3em 2em 4em;
+      position: relative;
+      overflow-x: hidden;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
+
+    /* Cornice floreale semplice in SVG (posizionata come sfondo) */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background: url('https://i.imgur.com/MTq5dHx.png') no-repeat center top;
+      background-size: contain;
+      opacity: 0.15;
+      z-index: 0;
+    }
+
     h1 {
-      color: #b85c38;
+      font-family: 'Playfair Display', serif;
+      font-size: 3em;
+      margin-bottom: 0.1em;
+      color: #a94442;
+      position: relative;
+      z-index: 1;
+      text-shadow: 1px 1px 2px #f0d9d9;
     }
+
+    h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5em;
+      font-weight: 400;
+      margin-top: 0;
+      margin-bottom: 2em;
+      color: #7a3e3e;
+      position: relative;
+      z-index: 1;
+      text-shadow: 1px 1px 1px #f5dcdc;
+    }
+
+    p {
+      font-size: 1.2em;
+      margin-bottom: 2em;
+      color: #7a3e3e;
+      position: relative;
+      z-index: 1;
+    }
+
     .button {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6em;
       margin: 1em auto;
       padding: 1em 2em;
       font-size: 1.2em;
+      font-weight: 700;
       color: white;
-      background-color: #b85c38;
+      background: linear-gradient(135deg, #c94c4c, #a94442);
       border: none;
-      border-radius: 10px;
+      border-radius: 35px;
       text-decoration: none;
-      width: 80%;
-      max-width: 300px;
+      width: 90%;
+      max-width: 320px;
+      box-shadow: 0 5px 15px rgba(201, 76, 76, 0.4);
+      transition: transform 0.25s ease, background 0.3s ease;
+      position: relative;
+      z-index: 1;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      user-select: none;
     }
     .button:hover {
-      background-color: #953f1c;
+      background: linear-gradient(135deg, #a94442, #c94c4c);
+      transform: scale(1.06);
+      box-shadow: 0 6px 20px rgba(201, 76, 76, 0.6);
     }
+
+    /* Animazione icona "pulsante" (piccolo rimbalzo) */
+    .button span.icon {
+      display: inline-block;
+      animation: bounce 1.6s infinite ease-in-out;
+      font-size: 1.3em;
+      line-height: 1;
+      user-select: none;
+    }
+
+    /* Ritardi diversi per ogni icona per movimento sfalsato */
+    .button:nth-child(2) span.icon { animation-delay: 0s; }
+    .button:nth-child(3) span.icon { animation-delay: 0.2s; }
+    .button:nth-child(4) span.icon { animation-delay: 0.4s; }
+    .button:nth-child(5) span.icon { animation-delay: 0.6s; }
+    .button:nth-child(6) span.icon { animation-delay: 0.8s; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .heart-divider {
+      font-size: 2.4em;
+      color: #e6a4a4;
+      margin: 3em 0 1.5em;
+      position: relative;
+      z-index: 1;
+    }
+
     footer {
       margin-top: 3em;
-      font-size: 0.9em;
-      color: #a35b3c;
+      font-size: 1em;
+      color: #7a3e3e;
+      position: relative;
+      z-index: 1;
+    }
+
+    footer em {
+      font-style: italic;
+      color: #a94442;
+    }
+
+    /* Responsive per smartphone */
+    @media (max-width: 400px) {
+      h1 {
+        font-size: 2.2em;
+      }
+      h2 {
+        font-size: 1.2em;
+      }
+      .button {
+        font-size: 1em;
+        max-width: 90%;
+        padding: 0.9em 1.8em;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Benvenuto al nostro matrimonio! 💍</h1>
-  <p>Scegli un mini-gioco e divertiti!</p>
-  <a class="button" href="giochi/fedi.html">💍 Raccogli le fedi</a>
-  <a class="button" href="giochi/torta.html">🎂 Corri verso la torta</a>
-  <a class="button" href="giochi/confetti.html">🎉 Lancia i confetti</a>
-  <a class="button" href="giochi/bouquet.html">💐 Lancia il bouquet</a>
+  <h1>Benvenuti al nostro matrimonio 💒</h1>
+  <h2>Con affetto, Tommaso & Raffaella</h2>
+  <p>Scegli un mini-gioco e festeggia insieme a noi con un sorriso!</p>
+
+  <a class="button" href="giochi/fedi.html"><span class="icon">💍</span> Raccogli le fedi</a>
+  <a class="button" href="giochi/bouquet.html"><span class="icon">💐</span> Lancio del bouquet!</a>
+  <a class="button" href="giochi/torta.html"><span class="icon">🎂</span> Corri verso la torta</a>
+  <a class="button" href="giochi/confetti.html"><span class="icon">🎉</span> Lancia i confetti</a>
+  <a class="button" href="giochi/lancio-livelli.html"><span class="icon">🏹</span> Lancia il bouquet 2D</a>
+
+  <div class="heart-divider">💞</div>
+
   <footer>
-    <p>Grazie di cuore per essere qui con noi in questo giorno speciale! Il vostro affetto è il regalo più bello. Divertitevi con il nostro gioco!</p>
-    <p> Tommaso e Raffaella </p>
+    <p>Grazie per essere qui e condividere con noi questo giorno speciale.</p>
+    <p><em>Che l'amore e il divertimento non finiscano mai! 💖</em></p>
   </footer>
 </body>
 </html>
