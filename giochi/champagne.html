@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Riempire il calice di spumante</title>
+  <style>
+    html {
+      font-size:16px;
+    }
+    body {
+      font-family: 'Roboto Condensed', sans-serif;
+      background: #fafafa;
+    }
+    h1,h2,h3,h4 {
+      font-family: 'Germania One', Arial,sans-serif;
+    }
+    #tap-container {
+      position:absolute;
+      top:0;
+      left:0;
+    }
+    #tap {
+      width:120px;
+      background: #ddd;
+      height:35px;
+      margin:140px 0 0 0;
+      position:relative;
+      border-top-left-radius:5px;
+      border-bottom-left-radius:5px;
+    }
+    #tap:after {
+      content:"";
+      display:block;
+      position:absolute;
+      border-top: 70px solid #ddd;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-radius:0 0 40px 40px;
+      height: 0;
+      width: 20px;
+      top:10px;
+      right:10px;
+      transform:rotate(-20deg);
+      z-index:2;
+    }
+    #tap:before {
+      content:"";
+      display:block;
+      position:absolute;
+      width:70px;
+      height:60px;
+      background:grey;
+      left:-20px;
+      top:-15px;
+      border-radius: 0px 20px 20px 0px;
+    }
+    #handle {
+      border-top: 100px solid black;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      width:20px;
+      position:absolute;
+      top:30px;
+      left:80px;
+      border-radius: 10px 10px 0 0;
+      z-index:3;
+      transition: transform 0.2s;
+    }
+    #handle:before {
+      content:"";
+      display:block;
+      width:30px;
+      height:30px;
+      background:lightgrey;
+      position:absolute;
+      bottom:-20px;
+      left:-5px;
+      border-radius:20px 20px 10px 10px
+    }
+    #handle:hover {
+      transform:rotate(6deg);
+      transform-origin: center bottom;
+    }
+    #pour {
+      position:absolute;
+      left:92px;
+      top:210px;
+      width:16px;
+      height:0px;
+      z-index:1;
+      background:rgba(245, 235, 120,1);
+      transition:0s;
+    }
+    #pour.pouring {
+      height:230px;
+      transition:800ms ease;
+    }
+
+    /* --- CALICE DA SPUMANTE --- */
+    #mug-container {
+      position:absolute;
+      top:140px;
+      left:200px;
+      right:0;
+      text-align:center;
+    }
+    #mug {
+      margin:60px auto 0 auto;
+      border:6px solid #eee;
+      width:100px;
+      height:220px;
+      border-radius: 50px 50px 15px 15px;
+      position:relative;	
+      background: rgba(255,255,255,0.2);
+      overflow:hidden;
+    }
+    /* stelo del calice */
+    #mug::after {
+      content:"";
+      position:absolute;
+      bottom:-80px;
+      left:50%;
+      transform:translateX(-50%);
+      width:12px;
+      height:70px;
+      background:#eee;
+      border-radius:5px;
+    }
+    /* base del calice */
+    #mug::before {
+      content:"";
+      position:absolute;
+      bottom:-100px;
+      left:50%;
+      transform:translateX(-50%);
+      width:80px;
+      height:15px;
+      background:#eee;
+      border-radius:50%;
+    }
+
+    /* SPUMANTE */
+    #beer {
+      width:100%;
+      height:0%;
+      max-height:100%;
+      background:
+        linear-gradient(
+          rgba(255,255,255,0.9) 0%,   
+          rgba(255,255,255,0.9) 25%, 
+          rgba(250, 245, 180,1) 35%,  
+          rgba(245, 235, 120,1) 40%,  
+          rgba(240, 230, 90,1) 100%   
+        );
+      background-repeat: repeat;
+      background-size:100% 200%;
+      position:absolute;
+      bottom:0;
+      left:0;
+      overflow:hidden;
+    }
+
+    @keyframes beerFill {
+      5% {
+        height:0%;
+      }
+      100% {
+        height:100%;
+      }
+    }
+    #beer.fill {
+      animation-name:beerFill;
+      animation-duration:10s;
+      animation-fill-mode:forwards;
+      background-position:0% 70%;
+    }
+
+    /* --- BOLLICINE --- */
+    .bubble {
+      position:absolute;
+      bottom:0;
+      background:rgba(255,255,255,0.8);
+      border-radius:50%;
+      animation: rise 4s infinite;
+      opacity:0.8;
+    }
+    @keyframes rise {
+      0% { transform: translateY(0) scale(0.5); opacity:0.8; }
+      50% { opacity:1; }
+      100% { transform: translateY(-220px) scale(1); opacity:0; }
+    }
+
+    h1 {
+      font-size:2.5rem;
+      text-align:center;
+      line-height:1em;
+      margin-bottom:10px;
+      margin-top:10px;
+    }
+    #percent-filled {
+      text-align:center;
+    }
+    #result {
+      text-align:center;
+    }
+    .helper.tap {
+      text-align:center;
+      margin-bottom:0;
+    }
+    .helper.mug {
+      margin-top:20px;
+      width:220px;
+      margin-left:auto;
+      margin-right:auto;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+  <p class="helper tap">Passa sul rubinetto per riempire il calice</p>
+  <h1>Riempi il calice fino al <span id="target">0</span>%</h1>
+  <h2 id="percent-filled"></h2>
+  <h3 id="result"></h3>
+
+  <div id="tap-container">
+    <div id="tap"></div>
+    <div id="handle"></div>
+    <div id="pour"></div>
+  </div>
+
+  <div id="mug-container">
+    <div id="mug">
+      <div id="beer"></div>
+    </div>  
+    <p class="helper mug">Clicca sul calice per resettare</p>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    var mugHeight;
+    var beerHeight;
+    var percentFilled;
+    var roundedPercent;
+    var game = Math.floor((Math.random() * 100) + 1);
+
+    function getHeights(){
+      mugHeight = $('#mug').height();
+      beerHeight = $('#beer').height();
+      percentFilled = (beerHeight / mugHeight) * 100;
+      roundedPercent = Math.round(percentFilled);
+      $('#percent-filled').html('Percentuale: ' + roundedPercent + '%');
+    };
+
+    $('#handle').hover(
+      function(){
+        $('#beer').addClass('fill');
+        $('#beer').css('animation-play-state', 'running');
+        $('#pour').addClass('pouring');
+      },
+      function(){
+        getHeights();
+        $('#beer').css('animation-play-state', 'paused');
+        $('#pour').removeClass('pouring');
+        if (roundedPercent === 0) {
+          // do nothing
+        } else if (roundedPercent === game) {
+          $('#result').html('Perfetto! Bravissimo!');
+        } else if((game - roundedPercent) < 5 && (game - roundedPercent) > -5 ){
+          $('#result').html('Quasi! Ci sei andato vicino.');
+        } else {
+          $('#result').html('Riprova 😅');
+        }
+      }
+    );
+
+    $('#mug').click(function(){
+      $('#beer').removeClass('fill');
+      getHeights();
+      $('#result').html('');
+      game = Math.floor((Math.random() * 100) + 1);
+      $('#target').html(game);  
+    })
+
+    $(document).ready(function(){
+      $('#target').html(game);  
+
+      // --- GENERAZIONE BOLLICINE ---
+      setInterval(function(){
+        var bubble = $('<div class="bubble"></div>');
+        var size = Math.random()*8 + 4; // 4-12px
+        var pos = Math.random()*80 + 10; // posizione orizzontale dentro al calice
+        bubble.css({
+          width:size+'px',
+          height:size+'px',
+          left:pos+'px',
+          animationDuration:(3+Math.random()*2)+'s'
+        });
+        $('#beer').append(bubble);
+        setTimeout(function(){ bubble.remove(); }, 5000);
+      }, 500);
+    });
+  </script>
+</body>
+</html>
