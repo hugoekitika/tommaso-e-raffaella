@@ -2,134 +2,367 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <title>Fill the Flûte Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gioco del Rubinetto</title>
-  <style>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Germania+One|Roboto+Condensed&display=swap" rel="stylesheet">
+  <style>y
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
+      min-height: 100vh;
+      min-width: 100vw;
+      font-family: 'Roboto Condensed', sans-serif;
+      background: #fafafa;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      background: #e0f7fa;
+    }
+    .game-wrapper {
+      display: flex;
       flex-direction: column;
-      font-family: Arial, sans-serif;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      width: 100vw;
     }
-
-    .game-container {
+    h1, h2, h3, h4 {
+      font-family: 'Germania One', Arial, sans-serif;
+      margin: 0.3em 0;
+      text-align: center;
+    }
+    #tap-container {
       position: relative;
-      width: 200px;
-      height: 300px;
+      width: 180px;
+      height: 250px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
-
-    .glass {
-      width: 100px;
-      height: 200px;
-      border: 3px solid #000;
+    #tap {
+      width: 120px;
+      background: #ddd;
+      height: 35px;
+      margin: 140px 0 0 0;
+      position: relative;
+      border-top-left-radius: 5px;
+      border-bottom-left-radius: 5px;
+    }
+    #tap:after {
+      content: "";
+      display: block;
+      position: absolute;
+      border-top: 70px solid #ddd;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
       border-radius: 0 0 40px 40px;
+      height: 0;
+      width: 20px;
+      top: 10px;
+      right: 10px;
+      transform: rotate(-20deg);
+      z-index: 2;
+    }
+    #tap:before {
+      content: "";
+      display: block;
       position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      overflow: hidden;
-      background: #fff;
+      width: 70px;
+      height: 60px;
+      background: grey;
+      left: -20px;
+      top: -15px;
+      border-radius: 0px 20px 20px 0px;
+    }
+    #handle {
+      border-top: 100px solid black;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      width: 20px;
+      position: absolute;
+      top: 30px;
+      left: 80px;
+      border-radius: 10px 10px 0 0;
+      z-index: 3;
+      transition: transform 0.2s;
+    }
+    #handle:before {
+      content: "";
+      display: block;
+      width: 30px;
+      height: 30px;
+      background: lightgrey;
+      position: absolute;
+      bottom: -20px;
+      left: -5px;
+      border-radius: 20px 20px 10px 10px
+    }
+    #handle:hover {
+      transform: rotate(6deg);
+      transform-origin: center bottom;
+    }
+    #handle:hover:before {
+      transform: rotate(0deg);
+    }
+    #pour {
+      position: absolute;
+      left: 92px;
+      top: 210px;
+      width: 16px;
+      height: 0px;
+      z-index: 1;
+      background: rgba(229,197,57,1);
+      transition: 0s;
+    }
+    #pour.pouring {
+      height: 230px;
+      transition: 800ms ease;
     }
 
-    .water {
-      position: absolute;
-      bottom: 0;
+    /* Bicchiere da spumante (flute) */
+    #mug-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 40px;
+      position: relative;
+    }
+    #mug {
+      margin: 0;
+      width: 70px;
+      height: 220px;
+      position: relative;
+      background: transparent;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* niente bordo qui */
+    }
+    /* Corpo del flute */
+    #flute-bowl {
+      width: 60px;
+      height: 140px;
+      border-radius: 30px 50px 18px 18px/60px 60px 28px 28px;
+      border: 4px solid #eee;
+      border-bottom: 2px;
+      background: transparent;
+      position: relative;
+      overflow: hidden;
+      z-index: 2;
+      margin: 0 auto;
+    }
+    /* Stelo */
+    #flute-stem {
+      width: 14px;
+      height: 53px;
+      background: #f2f2f2;
+      margin: 0 auto;
+      border-radius: 6px;
+      z-index: 1;
+    }
+    /* Base */
+    #flute-base {
+      width: 38px;
+      height: 12px;
+      background: #eee;
+      border-radius: 50px 50px 30px 30px/12px 12px 12px 12px;
+      margin: 0 auto;
+      margin-top: -10px;
+      z-index: 1;
+    }
+    #beer {
       width: 100%;
       height: 0%;
-      background: #29b6f6;
-      transition: height 0.1s linear;
-    }
-
-    .faucet {
-      width: 100px;
-      height: 30px;
-      background: #777;
-      border-radius: 10px;
+      max-height: 100%;
+      /* color champagne e sfumature */
+      background: linear-gradient(
+        rgba(255,255,255,0.95) 0%,
+        rgba(255,255,255,0.85) 20%,
+        #fdf6d1 40%,
+        #ebd369 60%,
+        #f7d96b 100%
+      );
       position: absolute;
-      top: -40px;
-      left: 50%;
-      transform: translateX(-50%);
-      cursor: pointer;
+      bottom: 0;
+      left: 0;
+      z-index: 3;
+      background-size: 100% 200%;
+      background-repeat: repeat;
+    }
+    @keyframes beerFill {
+      5% { height: 0%; }
+      100% { height: 100%; }
+    }
+    #beer.fill {
+      animation-name: beerFill;
+      animation-duration: 10s;
+      animation-fill-mode: forwards;
+      background-position: 0% 70%;
     }
 
-    .target-line {
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: red;
+    /* Testo e helpers */
+    #percent-filled, #result {
+      text-align: center;
+      width: 100vw;
     }
-
-    .message {
+    .helper.tap {
+      text-align: center;
+      margin-bottom: 0;
+      font-size: 1.1em;
+    }
+    .helper.mug {
       margin-top: 20px;
-      font-size: 20px;
-      font-weight: bold;
+      text-align: center;
+      font-size: 1.1em;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .game-wrapper {
+        min-height: 100vh;
+        padding: 0;
+        margin: 0;
+      }
+      #tap-container {
+        width: 120px;
+        height: 180px;
+        margin-top: 0;
+      }
+      #tap { width: 80px; margin-top: 80px; height: 25px; }
+      #tap:after { border-top-width: 40px; width: 12px; right: 5px; }
+      #tap:before { width: 40px; height: 35px; left: -12px; top: -8px; }
+      #handle { border-top-width: 60px; left: 50px; width: 14px; top: 18px; }
+      #handle:before { width: 18px; height: 18px; bottom: -10px; left: -2px; }
+      #pour { left: 60px; top: 130px; width: 10px; }
+      #pour.pouring { height: 120px; }
+      #mug-container { margin-top: 20px; }
+      #mug { width: 40px; height: 120px; }
+      #flute-bowl { width: 34px; height: 80px; border-radius: 17px 17px 8px 8px/34px 34px 15px 15px; border-width: 2px; }
+      #flute-stem { width: 5px; height: 28px; }
+      #flute-base { width: 18px; height: 7px; }
     }
   </style>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 <body>
-  <div class="game-container">
-    <div class="faucet"></div>
-    <div class="glass">
-      <div class="water"></div>
-      <div class="target-line"></div>
+  <div class="game-wrapper">
+    <p class="helper tap">Clicca per versare lo spumante</p>
+    <h1>Riempi il bicchiere <span id="target">0</span>%</h1>
+    <h2 id="percent-filled"></h2>
+    <h3 id="result"></h3>
+    <div id="tap-container">
+      <div id="tap"></div>
+      <div id="handle"></div>
+      <div id="pour"></div>
+    </div>
+    <div id="mug-container">
+      <div id="mug">
+        <div id="flute-bowl">
+          <div id="beer"></div>
+        </div>
+        <div id="flute-stem"></div>
+        <div id="flute-base"></div>
+      </div>
+      <p class="helper mug">Clicca sul bicchiere per riprovare</p>
     </div>
   </div>
-  <div class="message"></div>
-
   <script>
-    const faucet = document.querySelector('.faucet');
-    const water = document.querySelector('.water');
-    const targetLine = document.querySelector('.target-line');
-    const message = document.querySelector('.message');
+    var mugHeight;
+    var beerHeight;
+    var percentFilled;
+    var roundedPercent;
+    var game = Math.floor((Math.random() * 100) + 1);
 
-    let filling = false;
-    let waterLevel = 0; // in %
-    const speed = 0.5; // velocità riempimento (% per tick)
-    let interval;
+    function getHeights() {
+      mugHeight = $('#flute-bowl').height();
+      beerHeight = $('#beer').height();
+      percentFilled = (beerHeight / mugHeight) * 100;
+      roundedPercent = Math.round(percentFilled);
+      $('#percent-filled').html('Percent Filled: ' + roundedPercent + '%');
+    }
 
-    // Genera livello obiettivo casuale (tra 30% e 80%)
-    const targetLevel = Math.floor(Math.random() * 50) + 30;
-    const glassHeight = document.querySelector('.glass').offsetHeight;
-    targetLine.style.bottom = `${(targetLevel / 100) * glassHeight}px`;
+    // Stato per bloccare/sbloccare spillatura
+    let pouring = false;
 
-    faucet.addEventListener('click', () => {
-      if (!filling) {
-        // Avvia riempimento
-        filling = true;
-        message.textContent = "";
-        interval = setInterval(() => {
-          if (waterLevel < 100) {
-            waterLevel += speed;
-            water.style.height = `${waterLevel}%`;
-          } else {
-            stopFilling();
-          }
-        }, 50);
+    // Funzione per iniziare a spillare
+    function startPour() {
+      pouring = true;
+      $('#beer').addClass('fill');
+      $('#beer').css('animation-play-state', 'running');
+      $('#pour').addClass('pouring');
+    }
+
+    // Funzione per fermare la spillatura e valutare il risultato
+    function stopPourAndEvaluate() {
+      pouring = false;
+      getHeights();
+      $('#beer').css('animation-play-state', 'paused');
+      $('#pour').removeClass('pouring');
+      if (roundedPercent === 0) {
+        // do nothing
+      } else if (roundedPercent === game) {
+        $('#result').html('Grandioso! Puoi servire lo spumante a tutti!');
+      } else if ((game - roundedPercent) < 5 && (game - roundedPercent) > -5) {
+        $('#result').html('Non male... Puoi fare di meglio');
       } else {
-        // Stoppa riempimento e controlla risultato
-        stopFilling();
-        checkResult();
+        $('#result').html('Meglio che riprovi...');
       }
+    }
+
+    // Hover (desktop): inizia/ferma
+    $('#handle').on('mouseenter', function() {
+      if (!pouring) startPour();
+    });
+    $('#handle').on('mouseleave', function() {
+      if (pouring) stopPourAndEvaluate();
     });
 
-    function stopFilling() {
-      filling = false;
-      clearInterval(interval);
-    }
+    // Doppio click/doppio tap: FERMA
+    $('#handle').on('dblclick', function(e) {
+      if (pouring) stopPourAndEvaluate();
+    });
 
-    function checkResult() {
-      const diff = Math.abs(waterLevel - targetLevel);
-      if (diff <= 5) {
-        message.textContent = "🎉 Hai vinto! Perfetto!";
-        message.style.color = "green";
+    // Touch: primo tap per iniziare, doppio tap per fermare
+    let lastTap = 0;
+    $('#handle').on('touchend', function(e) {
+      var currentTime = new Date().getTime();
+      var tapLength = currentTime - lastTap;
+      if (tapLength < 400 && tapLength > 0) {
+        // Doppio tap: ferma!
+        if (pouring) stopPourAndEvaluate();
+        e.preventDefault();
       } else {
-        message.textContent = `❌ Hai perso! Differenza: ${diff.toFixed(1)}%`;
-        message.style.color = "red";
+        // Primo tap: inizia
+        if (!pouring) startPour();
       }
-    }
+      lastTap = currentTime;
+    });
+
+    // Reset flute
+    $('#mug').click(function() {
+      $('#beer').removeClass('fill');
+      getHeights();
+      $('#result').html('');
+      game = Math.floor((Math.random() * 100) + 1);
+      $('#target').html(game);
+      pouring = false;
+    });
+
+    $(document).ready(function() {
+      $('#target').html(game);
+      getHeights();
+    });
+
+    window.addEventListener('resize', function() {
+      getHeights();
+    });
   </script>
 </body>
 </html>
