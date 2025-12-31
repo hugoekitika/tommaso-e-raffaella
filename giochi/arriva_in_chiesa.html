@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🚗 Arriva in Chiesa in Tempo</title>
+<style>
+html,body{margin:0;overflow:hidden;background:#222;font-family:system-ui}
+#ui{position:fixed;top:10px;left:50%;transform:translateX(-50%);color:#fff;font-weight:700}
+#msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#ffd}
+canvas{display:block;margin:auto;background:#555}
+</style>
+</head>
+<body>
+
+<div id="ui">Tempo: 0 s</div>
+<div id="msg">Tocca per partire</div>
+<canvas id="game"></canvas>
+
+<script>
+(() => {
+const c = document.getElementById("game");
+const ctx = c.getContext("2d");
+const ui = document.getElementById("ui");
+const msg = document.getElementById("msg");
+
+function resize(){
+  c.width = Math.min(innerWidth, 420);
+  c.height = 600;
+}
+resize(); addEventListener("resize", resize);
+
+// stato
+let running=false, gameOver=false;
+let speed=6, time=0;
+
+// auto
+const car={x:0,y:0,w:40,h:70};
+function resetCar(){
+  car.x = c.width/2 - car.w/2;
+  car.y = c.height - car.h - 20;
+}
+resetCar();
+
+// ostacoli
+let obs=[], timer=0;
+function spawn(){
+  obs.push({
+    x: Math.random()*(c.width-40),
+    y: -80,
+    w: 40,
+    h: 40
+  });
+}
+
+function update(){
+  if(!running) return;
+
+  speed += 0.002;
+  time += 1/60;
+  ui.textContent = "Tempo: " + time.toFixed(1) + " s";
+
+  timer++;
+  if(timer>40){
+    timer=0;
+    spawn();
+  }
+
+  obs.forEach(o=>o.y+=speed);
+  obs = obs.filter(o=>o.y<c.height+50);
+
+  for(const o of obs){
+    if(o.x<car.x+car.w && o.x+o.w>car.x &&
+       o.y<car.y+car.h && o.y+o.h>car.y){
+      running=false;
+      gameOver=true;
+      msg.textContent="💥 Incidente! Tocca per riprovare";
+    }
+  }
+}
+
+function drawRoad(){
+  ctx.fillStyle="#666";
+  ctx.fillRect(0,0,c.width,c.height);
+  ctx.strokeStyle="#fff";
+  ctx.setLineDash([20,20]);
+  ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.moveTo(c.width/2,0);
+  ctx.lineTo(c.width/2,c.height);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function draw(){
+  ctx.clearRect(0,0,c.width,c.height);
+  drawRoad();
+
+  // auto
+  ctx.fillStyle="#fff";
+  ctx.fillRect(car.x,car.y,car.w,car.h);
+
+  // ostacoli
+  ctx.fillStyle="#c33";
+  obs.forEach(o=>ctx.fillRect(o.x,o.y,o.w,o.h));
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// input
+function start(){
+  if(gameOver){
+    obs=[];
+    speed=6;
+    time=0;
+    gameOver=false;
+  }
+  running=true;
+  msg.textContent="";
+}
+
+c.addEventListener("mousedown", start);
+c.addEventListener("touchstart", start);
+
+addEventListener("mousemove", e=>{
+  if(!running) return;
+  const rect=c.getBoundingClientRect();
+  car.x = e.clientX - rect.left - car.w/2;
+});
+})();
+</script>
+</body>
+</html>
