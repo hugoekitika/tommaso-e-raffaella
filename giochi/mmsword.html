@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MMSWORD</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#121826;
+      --card2:#0f1624;
+      --text:#e8eefc;
+      --muted:#98a6c7;
+      --line:#1f2a44;
+      --good:#40c463;
+      --warn:#ffd166;
+      --bad:#ef476f;
+      --accent:#6ea8fe;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 900px at 20% 0%, #15203a, var(--bg));
+      color:var(--text);
+    }
+    header{
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    header h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:.5px;
+    }
+    header .meta{
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    main{padding:16px; max-width:1200px; margin:0 auto;}
+    .grid{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+    }
+    .panel h2{
+      margin:0 0 10px 0;
+      font-size:14px;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+    }
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .spacer{flex:1}
+    button{
+      background:#18233a;
+      border:1px solid #223253;
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+      letter-spacing:.2px;
+      transition:.15s transform, .15s background, .15s border;
+    }
+    button:hover{transform: translateY(-1px); background:#1c2a46; border-color:#2b3e66;}
+    button:disabled{opacity:.45; cursor:not-allowed; transform:none;}
+    .btn-accent{background: rgba(110,168,254,.15); border-color: rgba(110,168,254,.35);}
+    .btn-good{background: rgba(64,196,99,.15); border-color: rgba(64,196,99,.35);}
+    .btn-warn{background: rgba(255,209,102,.12); border-color: rgba(255,209,102,.35);}
+    .btn-bad{background: rgba(239,71,111,.12); border-color: rgba(239,71,111,.35);}
+
+    input, select{
+      background:#0e1627;
+      border:1px solid #223253;
+      color:var(--text);
+      padding:10px 10px;
+      border-radius:12px;
+      outline:none;
+    }
+    label{color:var(--muted); font-size:12px; font-weight:700;}
+    .stack{display:flex; flex-direction:column; gap:6px; min-width:130px;}
+    .help{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+    .divider{height:1px; background:var(--line); margin:12px 0;}
+    .pill{
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+      padding:6px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      background:rgba(255,255,255,.03);
+    }
+    .pill strong{color:var(--text)}
+    .log{
+      max-height: 260px;
+      overflow:auto;
+      padding-right:6px;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .log p{margin:0 0 8px 0; color:var(--muted)}
+    .log p b{color:var(--text)}
+    .players{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap:12px;
+    }
+    @media (max-width: 980px){
+      .players{grid-template-columns:1fr}
+    }
+    .player{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      position:relative;
+    }
+    .player.active{outline:2px solid rgba(110,168,254,.6)}
+    .player .top{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:5px 9px; border-radius:999px; font-size:12px; font-weight:900;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+    }
+    .badge.dealer{border-color: rgba(110,168,254,.5); color: var(--accent);}
+    .badge.stand{border-color: rgba(64,196,99,.5); color: var(--good);}
+    .badge.bust{border-color: rgba(239,71,111,.55); color: var(--bad);}
+    .badge.win{border-color: rgba(255,209,102,.65); color: var(--warn);}
+    .cards{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    }
+    .card{
+      width:130px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid #223253;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      position:relative;
+    }
+    .card .name{font-weight:900; font-size:13px}
+    .card .sub{color:var(--muted); font-size:12px; margin-top:4px}
+    .card .val{
+      margin-top:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .card .val b{color:var(--text); font-size:14px}
+    .card.hidden{
+      background: linear-gradient(180deg, rgba(110,168,254,.12), rgba(255,255,255,.02));
+      border-color: rgba(110,168,254,.35);
+    }
+    .card.hidden .name{filter: blur(6px); user-select:none;}
+    .card.hidden .sub{filter: blur(6px); user-select:none;}
+    .card.hidden .val{filter: blur(6px); user-select:none;}
+    .card.revealed .name, .card.revealed .sub, .card.revealed .val{filter:none;}
+    .mini{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:6px;
+    }
+    .actions{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    }
+    .kpi{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    }
+    .kpi .pill{background:rgba(255,255,255,.02)}
+    .modal{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.6);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:1000;
+    }
+    .modal.show{display:flex;}
+    .modal .box{
+      width:min(520px, 100%);
+      background: #0d1423;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.5);
+    }
+    .modal h3{margin:0 0 10px 0; font-size:16px;}
+    .modal .help{margin:0 0 12px 0;}
+    .modal .row{justify-content:flex-end}
+    .footer-note{
+      color:var(--muted);
+      font-size:12px;
+      margin-top:10px;
+    }
+    code.small{
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: #cfe0ff;
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>GIOCO MMSWORD <span class="pill" id="phasePill"><strong>Setup</strong></span></h1>
+  <div class="meta" id="metaBar">
+    <span class="pill">Mazzo: <strong id="deckCount">0</strong></span>
+    <span class="pill">Scarti: <strong id="discardCount">0</strong></span>
+    <span class="pill">Round: <strong id="roundNum">1</strong></span>
+    <span class="pill">Mazziere: <strong id="dealerName">—</strong></span>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <section class="panel" id="leftPanel">
+      <h2>Controlli</h2>
+
+      <div id="setupArea">
+        <div class="row">
+          <div class="stack">
+            <label>Numero giocatori</label>
+            <select id="numPlayers">
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+            </select>
+          </div>
+          <div class="stack">
+            <label>Nomi (separati da virgola)</label>
+            <input id="namesInput" placeholder="Es: Mario, Luca, Anna, Sara" />
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn-accent" id="btnStart">Avvia partita</button>
+        </div>
+        <p class="help">
+          Hot-seat: passa il telefono al giocatore di turno quando richiesto.
+          La carta coperta è visibile solo tramite il bottone “Mostra la mia carta coperta”.
+        </p>
+        <p class="footer-note">
+          Regole implementate: max 20; scambio coperta con “sto bene” <b>oppure</b> col mazziere (cima mazzo) max 3.
+          Abilità <b>7 di Spade</b> forza un avversario a cambiare coperta col mazziere.
+        </p>
+      </div>
+
+      <div id="gameArea" style="display:none">
+        <div class="kpi">
+          <span class="pill">Turno di: <strong id="turnName">—</strong></span>
+          <span class="pill">Swap mazziere usati: <strong id="dealerSwapsUsed">0</strong>/3</span>
+          <span class="pill">Modalità swap: <strong id="swapMode">—</strong></span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="actions">
+          <button class="btn-accent" id="btnDeal">Dai carte (inizio round)</button>
+          <button id="btnShowHidden">Mostra la mia carta coperta</button>
+          <button class="btn-warn" id="btnPickSwapMode">Scegli modalità di scambio</button>
+          <button class="btn-accent" id="btnHit">Pesca carta</button>
+          <button class="btn-good" id="btnStand">Sto bene</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn-warn" id="btnSwapWithPlayer">Scambia coperta con “sto bene”</button>
+          <button class="btn-warn" id="btnSwapWithDealer">Cambia coperta col mazziere</button>
+          <button class="btn-bad" id="btnUse7Spade">Usa abilità 7 di Spade</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="actions">
+          <button class="btn-accent" id="btnEndRound">Chiudi turno / Vai allo showdown</button>
+          <button class="btn-accent" id="btnNextRound">Passa mazzo al prossimo (nuovo round)</button>
+          <button class="btn-bad" id="btnReset">Reset</button>
+        </div>
+
+        <div class="divider"></div>
+        <h2>Log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Tavolo</h2>
+      <div class="players" id="playersGrid"></div>
+      <div class="footer-note">
+        Suggerimento: per carte a valore “variabile” (Asso, 7 Denari, 10 Denari) ti verrà chiesto il valore quando la carta è tua e viene rivelata/giocata.
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Modal generica -->
+<div class="modal" id="modal">
+  <div class="box">
+    <h3 id="modalTitle">Scelta</h3>
+    <p class="help" id="modalText"></p>
+    <div id="modalBody"></div>
+    <div class="divider"></div>
+    <div class="row">
+      <button id="modalCancel">Annulla</button>
+      <button class="btn-accent" id="modalOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Utilities ----------
+  const $ = (sel) => document.querySelector(sel);
+  const el = (tag, attrs={}, children=[]) => {
+    const n = document.createElement(tag);
+    for (const [k,v] of Object.entries(attrs)){
+      if (k === "class") n.className = v;
+      else if (k === "html") n.innerHTML = v;
+      else if (k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v);
+    }
+    for (const c of children) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    return n;
+  };
+
+  function shuffle(a){
+    for (let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function suitLabel(s){
+    // Napoletane: denari, coppe, spade, bastoni
+    const map = { denari:"Denari", coppe:"Coppe", spade:"Spade", bastoni:"Bastoni" };
+    return map[s] || s;
+  }
+
+  function rankLabel(r){
+    const map = { A:"Asso", 8:"Fante", 9:"Cavallo", 10:"Re" };
+    return map[r] || String(r);
+  }
+
+  function cardKey(c){
+    return `${c.rank}-${c.suit}`;
+  }
+
+  // ---------- Modal helper ----------
+  const modal = {
+    show({title, text, bodyNode, okText="OK", cancelText="Annulla"}) {
+      return new Promise((resolve) => {
+        $("#modalTitle").textContent = title;
+        $("#modalText").textContent = text || "";
+        $("#modalBody").innerHTML = "";
+        if (bodyNode) $("#modalBody").appendChild(bodyNode);
+        $("#modalOk").textContent = okText;
+        $("#modalCancel").textContent = cancelText;
+        $("#modal").classList.add("show");
+
+        const cleanup = (val) => {
+          $("#modal").classList.remove("show");
+          $("#modalOk").onclick = null;
+          $("#modalCancel").onclick = null;
+          resolve(val);
+        };
+        $("#modalOk").onclick = () => cleanup(true);
+        $("#modalCancel").onclick = () => cleanup(false);
+      });
+    }
+  };
+
+  // ---------- Game state ----------
+  const state = {
+    phase: "setup", // setup | playing | showdown | tiebreak
+    round: 1,
+    dealerIndex: 0,
+    turnIndex: 0,
+    deck: [],
+    discard: [],
+    players: [], // {name, hand:[cards], stood, bust, win, swapMode:null|'player'|'dealer', dealerSwapUsed, used7Spade}
+    // cards: {rank, suit, faceUp:boolean, ownerIndex, chosenValue?:number, forcedRevealed?:boolean}
+  };
+
+  // ---------- Deck ----------
+  function buildDeck(){
+    const suits = ["denari","coppe","spade","bastoni"];
+    const ranks = ["A",2,3,4,5,6,7,8,9,10]; // 40 cards
+    const deck = [];
+    for (const s of suits){
+      for (const r of ranks){
+        deck.push({
+          rank: r,
+          suit: s,
+          faceUp: false,
+          ownerIndex: null,
+          chosenValue: null,
+          forcedRevealed: false
+        });
+      }
+    }
+    return shuffle(deck);
+  }
+
+  function drawCard(){
+    if (state.deck.length === 0){
+      // reshuffle discard into deck (keeping it playable)
+      state.deck = shuffle(state.discard.splice(0));
+      log(`Mazzo finito: rimescolo gli scarti.`);
+    }
+    return state.deck.pop();
+  }
+
+  // ---------- Rules: base / special values ----------
+  function is4Spade(c){ return (c.rank === 4 && c.suit === "spade"); }
+  function is7Spade(c){ return (c.rank === 7 && c.suit === "spade"); }
+  function is7Denari(c){ return (c.rank === 7 && c.suit === "denari"); }
+  function is10Denari(c){ return (c.rank === 10 && c.suit === "denari"); }
+  function isAce(c){ return (c.rank === "A"); }
+
+  function baseValue(c){
+    // default mapping:
+    // A=1 (but special 1/9), 2..7 numeric, 8=8, 9=9, 10=10
+    if (c.rank === "A") return 1;
+    return Number(c.rank);
+  }
+
+  function needsChoice(c){
+    return isAce(c) || is7Denari(c) || is10Denari(c);
+  }
+
+  async function ensureChosenValue(card, ownerIndex){
+    if (!needsChoice(card)) {
+      card.chosenValue = baseValue(card);
+      return;
+    }
+    if (card.chosenValue != null) return;
+
+    let options = [];
+    let title = "Scegli valore carta";
+    let text = "";
+
+    if (isAce(card)){
+      options = [1,9];
+      text = "Asso: vale 1 oppure 9.";
+    } else if (is7Denari(card)){
+      options = [1,2,3,4,5,6,7];
+      text = "7 di Denari: vale un numero da 1 a 7 a tua scelta.";
+    } else if (is10Denari(card)){
+      options = [1,2,3,4,5,6,7,8,9,10];
+      text = "10 di Denari: vale un numero da 1 a 10 a tua scelta.";
+    }
+
+    const select = el("select", {id:"valSel", style:"width:100%; margin-top:8px;"}, options.map(v => el("option", {value:String(v)}, [String(v)])));
+    const body = el("div", {}, [
+      el("div", {class:"help"}, [`Giocatore: ${state.players[ownerIndex].name}`]),
+      select
+    ]);
+
+    const ok = await modal.show({title, text, bodyNode: body, okText:"Conferma"});
+    if (!ok) {
+      // fallback: pick first option
+      card.chosenValue = options[0];
+      return;
+    }
+    card.chosenValue = Number(select.value);
+  }
+
+  function visibleTotalForPlayer(pIndex){
+    // For UI during play: count face-up + chosen of own hidden if revealed to self? We keep totals with chosen values where set.
+    const p = state.players[pIndex];
+    let sum = 0;
+    for (const c of p.hand){
+      if (c.chosenValue != null) sum += c.chosenValue;
+      else sum += baseValue(c);
+    }
+    return sum;
+  }
+
+  function totalForShowdown(pIndex){
+    // at showdown: all cards should have chosenValue set for variable ones.
+    const p = state.players[pIndex];
+    return p.hand.reduce((acc,c)=>acc+(c.chosenValue ?? baseValue(c)), 0);
+  }
+
+  // ---------- Logging ----------
+  function log(msg){
+    const node = el("p", {}, [el("b", {}, ["• "]), msg]);
+    $("#log").prepend(node);
+  }
+
+  // ---------- UI render ----------
+  function setPhase(phase){
+    state.phase = phase;
+    const label = phase === "setup" ? "Setup"
+                : phase === "playing" ? "Round"
+                : phase === "showdown" ? "Showdown"
+                : "Tie-break";
+    $("#phasePill").innerHTML = `<strong>${label}</strong>`;
+  }
+
+  function currentPlayer(){
+    return state.players[state.turnIndex];
+  }
+
+  function updateMeta(){
+    $("#deckCount").textContent = String(state.deck.length);
+    $("#discardCount").textContent = String(state.discard.length);
+    $("#roundNum").textContent = String(state.round);
+    $("#dealerName").textContent = state.players.length ? state.players[state.dealerIndex].name : "—";
+    $("#turnName").textContent = state.players.length ? currentPlayer().name : "—";
+    $("#dealerSwapsUsed").textContent = String(currentPlayer().dealerSwapUsed);
+    $("#swapMode").textContent = currentPlayer().swapMode ? (currentPlayer().swapMode === "player" ? "con STO BENE" : "col MAZZIERE") : "—";
+  }
+
+  function cardText(c){
+    return `${rankLabel(c.rank)} di ${suitLabel(c.suit)}`;
+  }
+
+  function render(){
+    updateMeta();
+
+    const grid = $("#playersGrid");
+    grid.innerHTML = "";
+
+    state.players.forEach((p, i) => {
+      const isActive = (state.phase === "playing" && i === state.turnIndex);
+      const box = el("div", {class:`player ${isActive ? "active":""}`});
+
+      const badges = [];
+      if (i === state.dealerIndex) badges.push(el("span",{class:"badge dealer"},["Mazziere"]));
+      if (p.stood) badges.push(el("span",{class:"badge stand"},["Sto bene"]));
+      if (p.bust) badges.push(el("span",{class:"badge bust"},["Sballato (>20)"]));
+      if (p.win) badges.push(el("span",{class:"badge win"},["Vincitore"]));
+
+      const top = el("div", {class:"top"}, [
+        el("div", {style:"font-weight:900;"}, [p.name]),
+        ...badges,
+        el("div", {class:"spacer"}, []),
+        el("span", {class:"pill"}, ["Totale: ", el("strong", {}, [String(visibleTotalForPlayer(i))])])
+      ]);
+
+      const cardsRow = el("div", {class:"cards"});
+      p.hand.forEach((c, idx) => {
+        // idx 0 is hidden at start, idx 1 is open at start
+        const isHiddenSlot = (idx === 0);
+        const shouldHide = isHiddenSlot && !c.faceUp && state.phase === "playing";
+        const cBox = el("div", {class:`card ${shouldHide ? "hidden":"revealed"}`}, [
+          el("div", {class:"name"}, [cardText(c)]),
+          el("div", {class:"sub"}, [
+            (is4Spade(c) ? "✨ 4 di Spade (auto-win)" :
+             is7Spade(c) ? "🌀 7 di Spade (abilità)" :
+             is7Denari(c) ? "🎯 7 di Denari (1..7)" :
+             is10Denari(c) ? "🎯 10 di Denari (1..10)" :
+             isAce(c) ? "🎯 Asso (1/9)" : "—")
+          ]),
+          el("div", {class:"val"}, [
+            el("span", {}, ["Valore"]),
+            el("b", {}, [String(c.chosenValue ?? baseValue(c))])
+          ]),
+          el("div", {class:"mini"}, [
+            isHiddenSlot ? (shouldHide ? "Carta coperta" : "Carta coperta (visibile)") : "Carta scoperta"
+          ])
+        ]);
+        cardsRow.appendChild(cBox);
+      });
+
+      // extra info
+      const info = el("div", {class:"mini"}, [
+        `SwapMode: ${p.swapMode ? (p.swapMode==="player"?"STO BENE":"MAZZIERE") : "—"} · `,
+        `Swap Mazziere: ${p.dealerSwapUsed}/3 · `,
+        `7♠ usato: ${p.used7Spade ? "sì" : "no"}`
+      ]);
+
+      box.appendChild(top);
+      box.appendChild(cardsRow);
+      box.appendChild(info);
+
+      grid.appendChild(box);
+    });
+
+    // buttons enable/disable
+    const playing = (state.phase === "playing");
+    $("#btnDeal").disabled = !(playing && allHandsEmpty());
+    $("#btnShowHidden").disabled = !(playing);
+    $("#btnPickSwapMode").disabled = !(playing && !currentPlayer().stood && currentPlayer().swapMode === null);
+
+    $("#btnHit").disabled = !(playing && !currentPlayer().stood && !currentPlayer().bust);
+    $("#btnStand").disabled = !(playing && !currentPlayer().stood && !currentPlayer().bust);
+
+    $("#btnSwapWithPlayer").disabled = !(playing && canSwapWithPlayer());
+    $("#btnSwapWithDealer").disabled = !(playing && canSwapWithDealer());
+
+    $("#btnUse7Spade").disabled = !(playing && canUse7Spade());
+
+    $("#btnEndRound").disabled = !(playing && allPlayersDone());
+    $("#btnNextRound").disabled = !(state.phase !== "setup" && (state.phase === "showdown" || state.phase === "tiebreak"));
+  }
+
+  function allHandsEmpty(){
+    return state.players.every(p => p.hand.length === 0);
+  }
+
+  function allPlayersDone(){
+    // done = stood or bust (or some win condition will end at showdown)
+    return state.players.every(p => p.stood || p.bust);
+  }
+
+  function stoodPlayersExceptCurrent(){
+    return state.players
+      .map((p, idx) => ({p, idx}))
+      .filter(x => x.idx !== state.turnIndex && x.p.stood && !x.p.bust);
+  }
+
+  function canSwapWithPlayer(){
+    const p = currentPlayer();
+    if (p.stood || p.bust) return false;
+    if (p.swapMode === null) return false;
+    if (p.swapMode !== "player") return false;
+    return stoodPlayersExceptCurrent().length > 0;
+  }
+
+  function canSwapWithDealer(){
+    const p = currentPlayer();
+    if (p.stood || p.bust) return false;
+    if (p.swapMode === null) return false;
+    if (p.swapMode !== "dealer") return false;
+    return p.dealerSwapUsed < 3;
+  }
+
+  function canUse7Spade(){
+    const p = currentPlayer();
+    if (p.stood || p.bust) return false;
+    if (p.used7Spade) return false;
+    const has7 = p.hand.some(c => is7Spade(c));
+    if (!has7) return false;
+    // must have at least one opponent not busted
+    return state.players.some((op, idx) => idx !== state.turnIndex && !op.bust);
+  }
+
+  // ---------- Core actions ----------
+  function initPlayers(names){
+    state.players = names.map(n => ({
+      name: n.trim(),
+      hand: [],
+      stood: false,
+      bust: false,
+      win: false,
+      swapMode: null, // 'player' or 'dealer'
+      dealerSwapUsed: 0,
+      used7Spade: false
+    }));
+    state.dealerIndex = 0;
+    state.turnIndex = 0;
+    state.round = 1;
+    state.deck = buildDeck();
+    state.discard = [];
+  }
+
+  function resetRoundState(){
+    state.players.forEach(p => {
+      p.hand = [];
+      p.stood = false;
+      p.bust = false;
+      p.win = false;
+      p.swapMode = null;
+      p.dealerSwapUsed = 0;
+      p.used7Spade = false;
+    });
+  }
+
+  async function dealInitial(){
+    resetRoundState();
+    // Each player gets 2 cards: one covered (index0), one open (index1)
+    state.players.forEach((p, i) => {
+      const hidden = drawCard();
+      hidden.ownerIndex = i;
+      hidden.faceUp = false;
+
+      const open = drawCard();
+      open.ownerIndex = i;
+      open.faceUp = true;
+
+      p.hand.push(hidden, open);
+    });
+
+    // set chosen values for face-up variable cards immediately (so totals are meaningful)
+    for (let i=0;i<state.players.length;i++){
+      const open = state.players[i].hand[1];
+      if (needsChoice(open)) {
+        await ensureChosenValue(open, i);
+      } else {
+        open.chosenValue = baseValue(open);
+      }
+    }
+
+    log(`Round ${state.round}: distribuite 2 carte a testa (1 coperta + 1 scoperta).`);
+    setPhase("playing");
+    state.turnIndex = (state.dealerIndex + 1) % state.players.length; // start after dealer
+    render();
+  }
+
+  async function pickSwapMode(){
+    const p = currentPlayer();
+    if (p.swapMode) return;
+
+    const body = el("div", {}, [
+      el("div", {class:"help"}, [
+        "Scegli UNA modalità per questo round (non puoi usare l’altra)."
+      ]),
+      el("div", {style:"display:grid; gap:10px; margin-top:10px;"}, [
+        el("button", {class:"btn-warn", id:"m1"}, ["Scambi con chi ha detto “Sto bene”"]),
+        el("button", {class:"btn-warn", id:"m2"}, ["Scambi col Mazziere (cima mazzo) max 3 volte"])
+      ])
+    ]);
+
+    // Custom modal without OK: we resolve by button click
+    $("#modalTitle").textContent = "Modalità di scambio";
+    $("#modalText").textContent = `Giocatore: ${p.name}`;
+    $("#modalBody").innerHTML = "";
+    $("#modalBody").appendChild(body);
+    $("#modalOk").style.display = "none";
+    $("#modalCancel").textContent = "Chiudi";
+    $("#modal").classList.add("show");
+
+    const close = () => {
+      $("#modal").classList.remove("show");
+      $("#modalOk").style.display = "";
+      $("#modalCancel").onclick = null;
+      $("#m1").onclick = null;
+      $("#m2").onclick = null;
+    };
+
+    $("#modalCancel").onclick = () => close();
+
+    $("#m1").onclick = () => {
+      p.swapMode = "player";
+      log(`${p.name} sceglie modalità swap: con “Sto bene”.`);
+      close();
+      render();
+    };
+    $("#m2").onclick = () => {
+      p.swapMode = "dealer";
+      log(`${p.name} sceglie modalità swap: col Mazziere (max 3).`);
+      close();
+      render();
+    };
+  }
+
+  async function showHiddenCard(){
+    const p = currentPlayer();
+    const hidden = p.hand[0];
+    // reveal only temporarily in UI: we toggle faceUp flag, but keep it "coperta" conceptually.
+    // We'll just reveal it for this session and keep it revealed (hot-seat expects privacy).
+    const ok = await modal.show({
+      title: "Privacy check",
+      text: `Confermi che in questo momento sta guardando SOLO ${p.name}?`,
+      bodyNode: el("div", {}, [el("div", {class:"help"}, ["Se sì, premi OK per rivelare la carta coperta."])])
+    });
+    if (!ok) return;
+
+    hidden.faceUp = true;
+    // choose value if needed
+    await ensureChosenValue(hidden, state.turnIndex);
+    log(`${p.name} ha rivelato (a sé) la carta coperta: ${cardText(hidden)}.`);
+    render();
+  }
+
+  async function hit(){
+    const p = currentPlayer();
+    const c = drawCard();
+    c.ownerIndex = state.turnIndex;
+    c.faceUp = true; // hits are open on table
+    p.hand.push(c);
+
+    if (needsChoice(c)) await ensureChosenValue(c, state.turnIndex);
+    else c.chosenValue = baseValue(c);
+
+    log(`${p.name} pesca: ${cardText(c)} (valore ${c.chosenValue}).`);
+
+    // bust check
+    const tot = visibleTotalForPlayer(state.turnIndex);
+    if (tot > 20){
+      p.bust = true;
+      p.stood = true;
+      log(`${p.name} supera 20 (totale ${tot}) → Sballato.`);
+      nextTurn();
+    }
+    render();
+  }
+
+  function stand(){
+    const p = currentPlayer();
+    p.stood = true;
+    log(`${p.name} dice: “Sto bene”.`);
+    nextTurn();
+    render();
+  }
+
+  function nextTurn(){
+    // find next player who is not stood/bust
+    const n = state.players.length;
+    for (let step=1; step<=n; step++){
+      const idx = (state.turnIndex + step) % n;
+      if (!state.players[idx].stood && !state.players[idx].bust){
+        state.turnIndex = idx;
+        return;
+      }
+    }
+    // no one left -> remain, end-round enabled
+  }
+
+  async function swapWithPlayer(){
+    const p = currentPlayer();
+    const candidates = stoodPlayersExceptCurrent();
+    if (candidates.length === 0) return;
+
+    const select = el("select", {style:"width:100%;"}, candidates.map(x =>
+      el("option",{value:String(x.idx)},[x.p.name])
+    ));
+    const ok = await modal.show({
+      title: "Scambia con un giocatore “Sto bene”",
+      text: "Scambi la TUA carta coperta con la SUA carta coperta.",
+      bodyNode: el("div", {}, [
+        el("div",{class:"help"},[`Giocatore: ${p.name}`]),
+        el("div",{style:"margin-top:8px;"},[select])
+      ]),
+      okText: "Scambia"
+    });
+    if (!ok) return;
+
+    const targetIdx = Number(select.value);
+    const t = state.players[targetIdx];
+
+    // swap hidden cards (index 0)
+    const a = p.hand[0];
+    const b = t.hand[0];
+    p.hand[0] = b; t.hand[0] = a;
+
+    // ownership update
+    p.hand[0].ownerIndex = state.turnIndex;
+    t.hand[0].ownerIndex = targetIdx;
+
+    // hide both again publicly
+    p.hand[0].faceUp = false;
+    t.hand[0].faceUp = false;
+
+    log(`${p.name} scambia la carta coperta con ${t.name} (modalità “Sto bene”).`);
+    render();
+  }
+
+  async function swapWithDealer(){
+    const p = currentPlayer();
+    if (p.dealerSwapUsed >= 3) return;
+
+    const ok = await modal.show({
+      title: "Cambia col Mazziere",
+      text: "La tua carta coperta viene scartata e rimpiazzata con la cima del mazzo.",
+      bodyNode: el("div", {}, [el("div",{class:"help"},[`Giocatore: ${p.name}`])]),
+      okText: "Cambia"
+    });
+    if (!ok) return;
+
+    const old = p.hand[0];
+    state.discard.push(old);
+
+    const neu = drawCard();
+    neu.ownerIndex = state.turnIndex;
+    neu.faceUp = false;
+    neu.chosenValue = null;
+
+    p.hand[0] = neu;
+    p.dealerSwapUsed += 1;
+
+    log(`${p.name} cambia la carta coperta col Mazziere (tentativo ${p.dealerSwapUsed}/3).`);
+    render();
+  }
+
+  async function use7SpadeAbility(){
+    const p = currentPlayer();
+    const has7 = p.hand.find(c => is7Spade(c));
+    if (!has7 || p.used7Spade) return;
+
+    const targets = state.players
+      .map((pp, idx) => ({pp, idx}))
+      .filter(x => x.idx !== state.turnIndex && !x.pp.bust);
+
+    const select = el("select", {style:"width:100%;"}, targets.map(x =>
+      el("option",{value:String(x.idx)},[x.pp.name])
+    ));
+
+    const ok = await modal.show({
+      title: "Abilità 7 di Spade",
+      text: "Scegli un avversario: la sua carta coperta verrà cambiata col Mazziere (cima mazzo). Il tuo 7 di Spade resterà scoperto.",
+      bodyNode: el("div",{},[
+        el("div",{class:"help"},[`Giocatore: ${p.name}`]),
+        el("div",{style:"margin-top:8px;"},[select])
+      ]),
+      okText: "Attiva"
+    });
+    if (!ok) return;
+
+    const tIdx = Number(select.value);
+    const t = state.players[tIdx];
+
+    // force reveal the 7 spade card
+    has7.faceUp = true;
+    has7.forcedRevealed = true;
+
+    // target's hidden -> discard, replace with top deck
+    const old = t.hand[0];
+    state.discard.push(old);
+
+    const neu = drawCard();
+    neu.ownerIndex = tIdx;
+    neu.faceUp = false;
+    neu.chosenValue = null;
+
+    t.hand[0] = neu;
+
+    p.used7Spade = true;
+    log(`${p.name} attiva 7 di Spade su ${t.name}: ${t.name} cambia la carta coperta col Mazziere.`);
+    render();
+  }
+
+  async function showdown(){
+    setPhase("showdown");
+
+    // reveal all hidden cards and ensure chosen values for variable ones
+    for (let i=0;i<state.players.length;i++){
+      const p = state.players[i];
+      for (const c of p.hand){
+        c.faceUp = true;
+        if (needsChoice(c)) await ensureChosenValue(c, i);
+        else c.chosenValue = baseValue(c);
+      }
+    }
+
+    // auto-win 4 spade
+    const autoWinners = state.players
+      .map((p,i)=>({p,i}))
+      .filter(x => x.p.hand.some(c => is4Spade(c)));
+
+    state.players.forEach(p => p.win = false);
+
+    if (autoWinners.length === 1){
+      autoWinners[0].p.win = true;
+      log(`✨ Auto-win: ${autoWinners[0].p.name} ha il 4 di Spade → vince il round!`);
+      render();
+      return;
+    } else if (autoWinners.length > 1){
+      // if multiple have 4 spade, treat as tie among them -> tiebreak
+      log(`✨ Più giocatori hanno il 4 di Spade: si va a spareggio tra loro.`);
+      await tiebreak(autoWinners.map(x=>x.i));
+      return;
+    }
+
+    // compute best <=20
+    const scores = state.players.map((p,i)=>({i, name:p.name, score: totalForShowdown(i)}));
+    const valid = scores.filter(s => s.score <= 20);
+
+    if (valid.length === 0){
+      // everyone busted: highest under? none => lowest over? we'll pick smallest score (closest to 20 but over)
+      const minOver = scores.reduce((best, s) => (best==null || s.score < best.score) ? s : best, null);
+      state.players[minOver.i].win = true;
+      log(`Tutti oltre 20: vince chi ha sforato di meno → ${minOver.name} (totale ${minOver.score}).`);
+      render();
+      return;
+    }
+
+    const max = valid.reduce((m,s)=>Math.max(m,s.score), -Infinity);
+    const top = valid.filter(s => s.score === max);
+
+    if (top.length === 1){
+      state.players[top[0].i].win = true;
+      log(`Vince ${top[0].name} con ${top[0].score} (<=20).`);
+      render();
+      return;
+    }
+
+    log(`Pareggio a ${max} tra: ${top.map(x=>x.name).join(", ")} → rilancio (3 carte).`);
+    await tiebreak(top.map(x=>x.i));
+  }
+
+  async function tiebreak(indices){
+    setPhase("tiebreak");
+
+    // each tied player draws 3 cards (faceUp) and compare sum of those 3
+    const results = [];
+    for (const idx of indices){
+      const p = state.players[idx];
+      const drawn = [];
+      for (let k=0;k<3;k++){
+        const c = drawCard();
+        c.ownerIndex = idx;
+        c.faceUp = true;
+        if (needsChoice(c)) await ensureChosenValue(c, idx);
+        else c.chosenValue = baseValue(c);
+        p.hand.push(c);
+        drawn.push(c);
+      }
+      const sum = drawn.reduce((a,c)=>a+(c.chosenValue ?? baseValue(c)),0);
+      results.push({idx, name:p.name, sum});
+      log(`Rilancio ${p.name}: pesca 3 carte → somma rilancio = ${sum}.`);
+    }
+
+    const best = Math.max(...results.map(r=>r.sum));
+    const winners = results.filter(r=>r.sum === best);
+
+    state.players.forEach(p=>p.win=false);
+
+    if (winners.length === 1){
+      state.players[winners[0].idx].win = true;
+      log(`Spareggio vinto da ${winners[0].name} (somma rilancio ${winners[0].sum}).`);
+    } else {
+      // if still tie, pick first deterministically
+      state.players[winners[0].idx].win = true;
+      log(`Spareggio ancora in pari (${best}). Scelgo vincitore “a priorità tavolo”: ${winners[0].name}.`);
+    }
+
+    render();
+  }
+
+  function rotateDealer(){
+    state.dealerIndex = (state.dealerIndex + 1) % state.players.length;
+    state.turnIndex = (state.dealerIndex + 1) % state.players.length;
+    state.round += 1;
+  }
+
+  function collectToDiscard(){
+    // move all cards to discard
+    for (const p of state.players){
+      while (p.hand.length) state.discard.push(p.hand.pop());
+    }
+  }
+
+  // ---------- Wire UI ----------
+  $("#btnStart").addEventListener("click", () => {
+    const n = Number($("#numPlayers").value);
+    const raw = ($("#namesInput").value || "").trim();
+    let names = raw ? raw.split(",").map(s=>s.trim()).filter(Boolean) : [];
+    if (names.length < n){
+      // fill default names
+      const defaults = ["Giocatore 1","Giocatore 2","Giocatore 3","Giocatore 4"];
+      while (names.length < n) names.push(defaults[names.length]);
+    }
+    names = names.slice(0,n);
+
+    initPlayers(names);
+    setPhase("playing");
+
+    $("#setupArea").style.display = "none";
+    $("#gameArea").style.display = "block";
+
+    log(`Partita avviata con ${n} giocatori: ${names.join(", ")}.`);
+    log(`Mazziere iniziale: ${state.players[state.dealerIndex].name}.`);
+    render();
+  });
+
+  $("#btnDeal").addEventListener("click", async () => {
+    await dealInitial();
+  });
+
+  $("#btnPickSwapMode").addEventListener("click", async () => {
+    await pickSwapMode();
+  });
+
+  $("#btnShowHidden").addEventListener("click", async () => {
+    await showHiddenCard();
+  });
+
+  $("#btnHit").addEventListener("click", async () => {
+    await hit();
+  });
+
+  $("#btnStand").addEventListener("click", () => {
+    stand();
+  });
+
+  $("#btnSwapWithPlayer").addEventListener("click", async () => {
+    await swapWithPlayer();
+  });
+
+  $("#btnSwapWithDealer").addEventListener("click", async () => {
+    await swapWithDealer();
+  });
+
+  $("#btnUse7Spade").addEventListener("click", async () => {
+    await use7SpadeAbility();
+  });
+
+  $("#btnEndRound").addEventListener("click", async () => {
+    await showdown();
+  });
+
+  $("#btnNextRound").addEventListener("click", () => {
+    // end round: collect, rotate dealer, ready new deal
+    collectToDiscard();
+    rotateDealer();
+    setPhase("playing");
+    state.players.forEach(p=>{
+      p.stood=false; p.bust=false; p.win=false; p.swapMode=null; p.dealerSwapUsed=0; p.used7Spade=false;
+    });
+    log(`Nuovo round ${state.round}. Mazziere: ${state.players[state.dealerIndex].name}. Premi “Dai carte”.`);
+    render();
+  });
+
+  $("#btnReset").addEventListener("click", () => {
+    location.reload();
+  });
+
+  // ---------- Initial ----------
+  setPhase("setup");
+  render();
+
+})();
+</script>
+</body>
+</html>
